@@ -1,0 +1,47 @@
+Introduction
+============
+
+Hsalf, or reversed Flash, is a pure Python package to read and write Flash
+file formats.
+
+Hsalf supports SWF file, both compressed and uncompressed formats.
+
+
+License
+=======
+
+Hsalf is released under the MIT license.
+
+
+Example
+=======
+
+This example prints out file version and frame rate::
+
+	from hsalf import swf
+	f = swf.SwfFile('screen.swf')
+	print f.header.file_header.version
+	print f.header.frame_header.frame_rate
+
+	for tag in f.iter_body():
+		print tag.tag_code
+
+This function extracts frames from a Screen Video from a Flash movie::
+
+	def extract_screen_video(file_name, stream_id, dst_dir='.'):
+		import os
+		import Image
+
+		swf = SwfFile(file_name)
+		last_img = None
+		for tag in swf.iter_body():
+		 	if isinstance(tag, VideoFrameTag) and tag.stream_id == stream_id:
+				svp = ScreenVideoPacket().deserialize(
+					StringIO(tag.video_data))
+				if svp.frame_type == KEY_FRAME:
+					last_img = Image.new('RGB',
+						(svp.image_width, svp.image_height))
+				img = svp.to_image(last_img)
+				img.save('{0}{1}{2:05d}.png'.format(dst_dir, os.sep,
+					tag.frame_num))
+				last_img = img
