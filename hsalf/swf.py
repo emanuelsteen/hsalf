@@ -335,6 +335,12 @@ class ScreenVideoBlock(SwfObject):
 		self.height = height
 		self.pixels = [None] * (self.width * self.height)
 	
+	def __cmp__(self, other):
+		if not isinstance(other, self.__class__):
+			raise TypeError('Must be compared to a ScreenVideoBlock instance')
+		return cmp((self.width, self.height, self.pixels),
+			(other.width, other.height, other.pixels))
+	
 
 class ScreenVideoPacket(SwfObject):
 
@@ -348,10 +354,22 @@ class ScreenVideoPacket(SwfObject):
 		def to_rgb(self):
 			return (self.r, self.g, self.b)
 		
+		def from_rgb(self, rgb):
+			self.r, self.g, self.b = rgb
+		
 		def __repr__(self):
 			return '%s%r' % (type(self).__name__, (
 				self.b, self.g, self.r))
+		
+		def __cmp__(self, other):
+			if isinstance(other, self.__class__):
+				return cmp((self.b, self.g, self.r),
+					(other.b, other.g, other.r))
+			raise TypeError('Must be compared to a BgrColor instance')
 
+		def __hash__(self):
+			return hash((self.b, self.g, self.r))
+		
 		def deserialize(self, f):
 			self.b, self.g, self.r = [ord(x) for x in ensure_read(f, 3)]
 			return self
@@ -445,11 +463,33 @@ class ScreenVideoPacket(SwfObject):
 		return image
 	
 	def from_image(self, img, previous_frame=None,
-		block_width=32, block_height=32, frame_type=KEY_FRAME):
+		block_width=32, block_height=32):
+		'''Fills self with data from img.
+
+		Fills the current object with data from img. If previous_frame is
+		None, this frame will be a keyframe. Otherwise, previous_frame must
+		be a ScreenVideoPacket, then this frame will be an interframe. Delta
+		data are calculated from img and previous_frame.
+
+		Args:
+			img (Image): A loaded RGB image.
+			previous_frame (ScreenVideoPacket): The previous frame data, or
+				None if this frame is a keyframe.
+			block_width (int): The block width.
+			block_height (int): The block height.
+		
+		Returns:
+			None
+		
+		Raises:
+			SwfException: If previous frame is not a ScreenVideoPacket, or
+				previous_frame size is different from this frame, or
+				block sizes are not multiple of 16, or
+				img is not an RGB image.
+
+		'''
 		# interfame
-		if frame_type != KEY_FRAME:
-			if not previous_frame:
-				raise SwfException('Interframe requires a previous frame')
+		if previous_frame:
 			if not isinstance(previous_frame, ScreenVideoPacket):
 				raise SwfException('Previous frame must be a Screen Video frame')
 			if (previous_frame.image_width, previous_frame.image_height) != \
@@ -457,22 +497,24 @@ class ScreenVideoPacket(SwfObject):
 				raise SwfException('Mismatched frame size')
 			self.block_width = previous_frame.block_width
 			self.block_height = previous_frame.block_height
+			self.frame_type = INTER_FRAME
 		# key frame
 		else:
 			self.block_width = block_width
 			self.block_height = block_height
+			self.frame_type = KEY_FRAME
 		if (self.block_width % 16) != 0 or (self.block_height % 16) != 0:
 			raise SwfException('Block size must be multiple of 16')
+		if img.mode != 'RGB':
+			raise SwfException('Source image must be in RGB mode')
 		self.image_width, self.image_height = img.size
-		self.frame_type = frame_type
 		self.prepare_blocks()
-		self.fill_blocks_from_image(img)
+		self.fill_blocks_from_image(img, previous_frame)
 	
 	def fill_blocks_from_image(self, img, previous_frame=None):
 		for block_nr in xrange(self.block_count):
 			width, height = self.get_block_dimension(block_nr)
 			svb = ScreenVideoBlock(width, height)
-			self.image_blocks[block_nr] = svb
 
 			row = block_nr // self.hoz_blk_cnt
 			col = block_nr % self.hoz_blk_cnt
@@ -487,11 +529,18 @@ class ScreenVideoPacket(SwfObject):
 			pix_idx = 0
 			while idx >= 0:
 				for pix in pixels[idx : idx + width]:
-					svb.pixels[pix_idx] = ScreenVideoPacket.BgrColor( \
-						pix[2], pix[1], pix[0])
+					svb.pixels[pix_idx] = ScreenVideoPacket.BgrColor(). \
+						from_rgb(pix)
 					pix_idx += 1
 				idx -= width
 			assert(pix_idx == len(svb.pixels))
+
+			# check if this block and the previous one is the same
+			# if it is, we do not need this block
+			if previous_frame and \
+				previous_frame.image_blocks[block_nr] == svb:
+				svb = None
+			self.image_blocks[block_nr] = svb
 
 	def __repr__(self):
 		return '%s%r' % (type(self).__name__, (
