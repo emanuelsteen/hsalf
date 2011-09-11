@@ -62,11 +62,54 @@ class BitReader(object):
 		return r
 
 	def sign_read(self, length):
+		if length < 2:
+			raise ValueError('signed value must have length greater than 1')
 		return self.read(length, True)
 
 	def unsign_read(self, length):
 		return self.read(length, False)
 	
+
+class BitWriter(object):
+
+	def __init__(self, f):
+		self.fio = f
+		self.buffer = []
+	
+	def flush(self):
+		data = b''.join(self.buffer)
+		remain = len(data) % 8
+		if remain != 0:
+			remain = 8 - remain
+			data += b'0' * remain
+		buf = []
+		idx = 0
+		while idx < len(data):
+			c = chr(int(data[idx : idx + 8], 2))
+			buf.append(c)
+			idx += 8
+		self.fio.write(b''.join(buf))
+		self.fio.flush()
+	
+	@staticmethod
+	def required_bits(*numbers):
+		max_num = -0xFFFFFFFF
+		for num in numbers:
+			# negative number?
+			# take absolute value, minus 1
+			# because -2 requires 1 bit to present, but 2 requires 2
+			if num < 0:
+				num = -num - 1
+			if max_num < num:
+				max_num = num
+		return len('{0:b}'.format(max_num)) + 1
+	
+	def write(self, bits, number):
+		if number < 0:
+			number = 2 ** bits + number
+		fmt = '{{0:0{0}b}}'.format(bits)
+		self.buffer.append(fmt.format(number))
+
 
 class SwfObject(object):
 
