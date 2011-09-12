@@ -93,7 +93,8 @@ class BitWriter(object):
 	
 	@staticmethod
 	def required_bits(*numbers):
-		max_num = -0xFFFFFFFF
+		# min int32
+		max_num = (-2) ** 31
 		for num in numbers:
 			# negative number?
 			# take absolute value, minus 1
