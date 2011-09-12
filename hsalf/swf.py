@@ -495,7 +495,6 @@ class ScreenVideoPacket(SwfObject):
 		return width, height
 
 	def fill_blocks(self, f):
-		br = BitReader(f)
 		for block_nr in xrange(self.block_count):
 			width, height = self.get_block_dimension(block_nr)
 			svb = ScreenVideoBlock(width, height).deserialize(f)
