@@ -76,6 +76,9 @@ class BitWriter(object):
 		self.fio = f
 		self.buffer = []
 	
+	def __del__(self):
+		self.flush()
+	
 	def flush(self):
 		data = b''.join(self.buffer)
 		remain = len(data) % 8
@@ -222,6 +225,7 @@ class Rect(SwfObject):
 		bw.write(nbits, self.x_max)
 		bw.write(nbits, self.y_min)
 		bw.write(nbits, self.y_max)
+		bw.flush()
 	
 	def __repr__(self):
 		return '%s%r' % (type(self).__name__, (
@@ -275,6 +279,10 @@ class FileHeader(SwfObject):
 		self.version = version
 		return self
 	
+	def serialize(self, f):
+		f.write(struct.pack('<3sBI', self.signature, self.version,
+			self.file_length))
+	
 
 class FrameHeader(SwfObject):
 
@@ -291,6 +299,10 @@ class FrameHeader(SwfObject):
 		self.frame_count = count
 		return self
 
+	def serialize(self, f):
+		self.frame_size.serialize(f)
+		f.write(struct.pack('<HH', self.frame_rate, self.frame_count))
+
 
 class Header(SwfObject):
 
@@ -301,6 +313,10 @@ class Header(SwfObject):
 	def deserialize(self, f):
 		raise NotImplemented()
 	
+	def serialize(self, f):
+		self.file_header.serialize(f)
+		self.frame_header.serialize(f)
+
 
 class Tag(SwfObject):
 	
