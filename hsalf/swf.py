@@ -359,6 +359,7 @@ class Tag(SwfObject):
 	def _serialize(self):
 		pass
 
+
 class UnknownTag(Tag):
 
 	def __init__(self):
@@ -366,6 +367,9 @@ class UnknownTag(Tag):
 	
 	def _deserialize(self, f):
 		self.data = ensure_read(f, self.tag_length)
+
+	def _serialize(self, f):
+		f.write(data)
 
 
 class ScreenVideoBlock(SwfObject):
