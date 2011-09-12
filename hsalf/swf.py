@@ -345,6 +345,19 @@ class Tag(SwfObject):
 	def _deserialize(self, f):
 		pass
 
+	def serialize(self, f, tag=True):
+		if tag:
+			code_and_length = self.tag_code << 6
+			if self.tag_length < 63:
+				code_and_length |= self.tag_length
+				f.write(struct.pack('<H', code_and_length))
+			else:
+				code_and_length |= 63
+				f.write(struct.pack('<HI', code_and_length, self.tag_length))
+		self._serialize(f)
+	
+	def _serialize(self):
+		pass
 
 class UnknownTag(Tag):
 
