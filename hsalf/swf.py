@@ -213,6 +213,16 @@ class Rect(SwfObject):
 		self.y_max = br.sign_read(nbits)
 		return self
 	
+	def serialize(self, f):
+		bw = BitWriter(f)
+		nbits = BitWriter.required_bits(self.x_min, self.x_max,
+			self.y_min, self.y_max)
+		bw.write(5, nbits)
+		bw.write(nbits, self.x_min)
+		bw.write(nbits, self.x_max)
+		bw.write(nbits, self.y_min)
+		bw.write(nbits, self.y_max)
+	
 	def __repr__(self):
 		return '%s%r' % (type(self).__name__, (
 			self.x_min, self.x_max, self.y_min, self.y_max))
