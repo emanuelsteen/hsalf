@@ -377,7 +377,7 @@ class ScreenVideoBlock(SwfObject):
 	def __init__(self, width, height):
 		self.width = width
 		self.height = height
-		self.pixels = [None] * (self.width * self.height)
+		self.pixels = []
 	
 	def __cmp__(self, other):
 		if not isinstance(other, self.__class__):
@@ -385,6 +385,36 @@ class ScreenVideoBlock(SwfObject):
 		return cmp((self.width, self.height, self.pixels),
 			(other.width, other.height, other.pixels))
 	
+	def deserialize(self, f):
+		br = BitReader(f)
+		size = br.unsign_read(16)
+		if size == 0:
+			return None
+		blk_data = f.read(size)
+		blk_data = zlib.decompress(blk_data)
+		blk_data = StringIO(blk_data)
+		self.pixels = [0] * (self.width * self.height)
+		pixel_nr = 0
+		while pixel_nr < len(self.pixels):
+			self.pixels[pixel_nr] = ScreenVideoPacket.BgrColor(). \
+				deserialize(blk_data)
+			pixel_nr += 1
+		return self
+
+	def serialize(self, f):
+		bw = BitWriter(f)
+		if not self.pixels:
+			bw.write(16, 0)
+			bw.flush()
+		else:
+			data = StringIO()
+			for pixel in self.pixels:
+				pixel.serialize(data)
+			data = zlib.compress(data.getvalue())
+			bw.write(16, len(data))
+			bw.flush()
+			f.write(data)
+
 
 class ScreenVideoPacket(SwfObject):
 
@@ -467,24 +497,10 @@ class ScreenVideoPacket(SwfObject):
 	def fill_blocks(self, f):
 		br = BitReader(f)
 		for block_nr in xrange(self.block_count):
-			size = br.unsign_read(16)
-			if not size:
-				continue
-			
 			width, height = self.get_block_dimension(block_nr)
-			svb = ScreenVideoBlock(width, height)
+			svb = ScreenVideoBlock(width, height).deserialize(f)
 			self.image_blocks[block_nr] = svb
 
-			blk_data = f.read(size)
-			blk_data = zlib.decompress(blk_data)
-			pixel_nr = idx = 0
-			while idx < len(blk_data):
-				b, g, r = [ord(x) for x in blk_data[idx : idx + 3]]
-				svb.pixels[pixel_nr] = ScreenVideoPacket.BgrColor(b, g, r)
-				idx += 3
-				pixel_nr += 1
-			assert(pixel_nr == len(svb.pixels))
-	
 	def to_image(self, image):
 		pixel_access = image.load()
 		for block_nr, svb in enumerate(self.image_blocks):
