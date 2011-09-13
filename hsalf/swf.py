@@ -407,11 +407,16 @@ class FileHeader(SwfObject):
 		self.file_length = length
 		return self
 	
-	def _compressed(self):
+	def _get_compressed(self):
 		if self.signature[0] == 'C':
 			return True
 		return False
-	compressed = property(_compressed)
+	def _set_compressed(self, b):
+		if b:
+			self.signature = 'CWS'
+		else:
+			self.signature = 'FWS'
+	compressed = property(_get_compressed, _set_compressed)
 
 	def serialize(self, f):
 		f.write(struct.pack('<3sBI', self.signature, self.version,
