@@ -913,7 +913,34 @@ class VideoFrameTag(Tag):
 
 
 class SwfFile(SwfObject):
-	'''An SWF file.'''
+	'''An SWF file.
+
+	This object is best used as an iterator. For example, to iterate
+	through all tags in the SWF file::
+
+		for tag in swf_file.iter_body():
+			# do something with tag
+	
+	To save this object to file::
+
+		swf_file.save('filename.swf', swf_file.iter_body())
+	
+	To save a compressed file, make sure the file header version is set
+	to at least 6, and its compressed attribute to True::
+
+		swf_file.header.file_header.compressed = True
+		swf_file.header.file_header.version = 7
+		swf_file.save(...)
+	
+	After an iteration completes, it cannot rewind. The list of tags
+	can be saved to support multiple iterations.
+
+	Attributes:
+		header (Header): Both FileHeader and FrameHeader.
+		body (list of Tag): All tags. This attribute may not present.
+			See method `load`.
+	
+	'''
 
 	decoders = {
 		VIDEOFRAME: VideoFrameTag,
