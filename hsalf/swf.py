@@ -383,7 +383,7 @@ class Matrix(SwfObject):
 class FileHeader(SwfObject):
 	'''Represents the first 8 bytes of an SWF file.
 
-	The attributes are:
+	Attributes:
 		signature (string): Either 'FWS' or 'CWS'.
 		version (int): Version of this SWF file.
 		file_length (int): The length of the file, including this header.
@@ -417,6 +417,14 @@ class FileHeader(SwfObject):
 	
 
 class FrameHeader(SwfObject):
+	'''Represents the second part of SWFHEADER.
+
+	Attributes:
+		frame_size (Rect): Frame size, in twips.
+		frame_rate (int): Number of frames per second.
+		frame_count (int): Number of frames.
+	
+	'''
 
 	def __init__(self):
 		self.frame_size = Rect()
