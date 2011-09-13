@@ -21,6 +21,7 @@ SND_STEREO = 1
 
 SET_BACKGROUND_COLOR = 9
 SOUND_STREAM_HEAD = 18
+PLACE_OBJECT_2 = 26
 VIDEO_FRAME = 61
 
 
@@ -384,9 +385,10 @@ class Matrix(SwfObject):
 			rotate2 = br.sign_read(rotate_bits)
 			self.rotate = [rotate1 / 65536.0, rotate2 / 65536.0]
 		translate_bits = br.unsign_read(5)
-		translate_x = br.sign_read(translate_bits)
-		translate_y = br.sign_read(translate_bits)
-		self.translate = [translate_x, translate_y]
+		self.translate = [0, 0]
+		if translate_bits > 0:
+			self.translate[0] = br.sign_read(translate_bits)
+			self.translate[1] = br.sign_read(translate_bits)
 		return self
 
 
@@ -591,6 +593,82 @@ class SetBackgroundColorTag(Tag):
 	
 	def _deserialize(self, f):
 		self.background_color.deserialize(f)
+
+
+class PlaceObject2Tag(Tag):
+	'''PlaceObject2 tag.
+
+	We use None for attributes' initial value to determine if they are there.
+
+	'''
+
+	def __init__(self):
+		self.tag_code = PLACE_OBJECT_2
+		self.depth = 0
+		self.move = 0
+		self.character_id = None
+		self.matrix = None
+		self.color_transform = None
+		self.ratio = None
+		self.name = None
+		self.clip_depth = None
+		self.clip_actions = None
+	
+	def _deserialize(self, f):
+		br = BitReader(f)
+		has_clip_actions = br.unsign_read(1)
+		has_clip_depth = br.unsign_read(1)
+		has_name = br.unsign_read(1)
+		has_ratio = br.unsign_read(1)
+		has_color_trans = br.unsign_read(1)
+		has_matrix = br.unsign_read(1)
+		has_char = br.unsign_read(1)
+		self.move = br.unsign_read(1)
+
+		self.depth = struct.unpack('<H', f.read(2))[0]
+		if has_char:
+			self.character_id = struct.unpack('<H', f.read(2))[0]
+		if has_matrix:
+			self.matrix = Matrix().deserialize(f)
+		if has_color_trans:
+			# TODO
+			self.color_transform = None
+		if has_ratio:
+			self.ratio = struct.unpack('<H', f.read(2))[0]
+		if has_name:
+			self.name = String().deserialize(f)
+		if has_clip_depth:
+			self.clip_depth = struct.unpack('<H', f.read(2))[0]
+		if has_clip_actions:
+			# TODO
+			self.clip_actions = None
+
+	def _serialize(self, f):
+		bits = [0] * 8
+		for idx, name in enumerate(('clip_actions', 'clip_depth', 'name',
+			'ratio', 'color_transform', 'matrix', 'character_id')):
+			if self.__dict__.get(name, None) is not None:
+				bits[idx] = 1
+		bits[7] = self.move
+		bw = BitWriter(f)
+		for bit in bits:
+			bw.write(1, bit)
+		bw.flush()
+		f.write(struct.pack('<H', self.depth))
+		if self.character_id is not None:
+			f.write(struct.pack('<H', self.character_id))
+		if self.matrix is not None:
+			self.matrix.serialize(f)
+		if self.color_transform is not None:
+			self.color_transform.serialize(f)
+		if self.ratio is not None:
+			f.write(struct.pack('<H', self.ratio))
+		if self.name is not None:
+			self.name.serialize(f)
+		if self.clip_depth is not None:
+			f.write(struct.pack('<H', self.clip_depth))
+		if self.clip_actions is not None:
+			self.clip_actions.serialize(f)
 
 
 class SoundStreamHeadTag(Tag):
@@ -1057,6 +1135,7 @@ class SwfFile(SwfObject):
 
 	decoders = {
 		SET_BACKGROUND_COLOR: SetBackgroundColorTag,
+		PLACE_OBJECT_2: PlaceObject2Tag,
 		SOUND_STREAM_HEAD: SoundStreamHeadTag,
 		VIDEO_FRAME: VideoFrameTag,
 	}
