@@ -394,19 +394,22 @@ class FileHeader(SwfObject):
 		self.signature = 'FWS'
 		self.version = 7
 		self.file_length = 0
-		self.compressed = False
 	
 	def deserialize(self, f):
 		signature, version, length = \
 			struct.unpack('<3sBI', f.read(8))
 		if signature not in ('FWS', 'CWS'):
 			raise SwfException('Invalid signature')
-		if signature[0] == 'C':
-			self.compressed = True
 		self.signature = signature
 		self.version = version
 		return self
 	
+	def _compressed(self):
+		if signature[0] == 'C':
+			return True
+		return False
+	compressed = property(_compressed)
+
 	def serialize(self, f):
 		f.write(struct.pack('<3sBI', self.signature, self.version,
 			self.file_length))
