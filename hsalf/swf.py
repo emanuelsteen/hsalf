@@ -906,18 +906,33 @@ class VideoFrameTag(Tag):
 
 
 class SwfFile(SwfObject):
+	'''An SWF file.'''
 
 	decoders = {
 		VIDEOFRAME: VideoFrameTag,
 	}
 
 	def __init__(self, file_name=None):
+		'''Constructs an SwfFile object.
+
+		If file_name is not None, the file will be loaded. If the file
+		is compressed, its content will be decompressed fully in memory,
+		the original file is then closed. If the file is not compressed,
+		only the header is read, the file is not closed.
+
+		Args:
+			file_name (string): A file to load from.
+		
+		'''
+
 		self.header = None
 		self.file = None
 		if file_name:
 			self.load_header(file_name)
 
 	def close(self):
+		'''Close the underlying file object.'''
+
 		self.file.close()
 	
 	def __del__(self):
@@ -925,6 +940,20 @@ class SwfFile(SwfObject):
 			self.file.close()
 
 	def load_header(self, file_name):
+		'''Reads in SWF header record.
+
+		If this SWF file is compressed, the whole file content will be
+		read and decompressed into memory, the underlying file is closed.
+
+		Args:
+			file_name (string): The SWF file to be loaded.
+		
+		Raises:
+			SwfException: If file is compressed but version is less
+				than 6.
+		
+		'''
+
 		self.file = open(file_name, 'rb')
 		fih = FileHeader().deserialize(self.file)
 		if fih.compressed:
@@ -939,11 +968,21 @@ class SwfFile(SwfObject):
 		self.header = Header(fih, frh)
 	
 	def load(self, file_name, body=True):
+		'''Reads in header and, optionally, the body.
+
+		Args:
+			file_name (string): A file to read from.
+			body (bool): True to populate self.body.
+		
+		'''
+
 		self.load_header(file_name)
 		if body:
 			self.body = [tag for tag in self.iter_body()]
 
 	def iter_body(self):
+		'''Returns an iterator through all tags, including the END tag.'''
+
 		while True:
 			try:
 				tag = Tag().deserialize(self.file)
