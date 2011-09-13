@@ -48,25 +48,50 @@ class BitWriterTest(unittest.TestCase):
 
 	def test_unsigned_write(self):
 		f = StringIO()
-		br = swf.BitWriter(f)
-		br.write(1, 0)
-		br.write(2, 1)
-		br.write(3, 2)
-		br.write(4, 3)
-		br.write(5, 0)
-		br.write(1, 1)
-		br.flush()
+		bw = swf.BitWriter(f)
+		bw.write(1, 0)
+		bw.write(2, 1)
+		bw.write(3, 2)
+		bw.write(4, 3)
+		bw.write(5, 0)
+		bw.write(1, 1)
+		bw.flush()
 		self.assertEqual(b'\x28\xC1', f.getvalue())
+		f = StringIO()
 
 	def test_signed_write(self):
 		f = StringIO()
-		br = swf.BitWriter(f)
-		br.write(2, 0)
-		br.write(2, 1)
-		br.write(2, -2)
-		br.write(2, -1)
-		br.flush()
+		bw = swf.BitWriter(f)
+		bw.write(2, 0)
+		bw.write(2, 1)
+		bw.write(2, -2)
+		bw.write(2, -1)
+		bw.flush()
 		self.assertEqual(b'\x1B', f.getvalue())
+	
+	def test_del(self):
+		f = StringIO()
+		bw = swf.BitWriter(f)
+		bw.write(5, 15)
+		bw.write(15, 0)
+		bw.write(15, 12000)
+		bw.write(15, 0)
+		bw.write(15, 8000)
+		del bw
+		self.assertEqual(b'\x78\x00\x05\xDC\x00\x00\x0F\xA0\x00',
+			f.getvalue())
+
+		f = StringIO()
+		bw = swf.BitWriter(f)
+		bw.write(5, 15)
+		bw.write(15, 0)
+		bw.write(15, 12000)
+		bw.write(15, 0)
+		bw.write(15, 8000)
+		bw.flush()
+		del bw
+		self.assertEqual(b'\x78\x00\x05\xDC\x00\x00\x0F\xA0\x00',
+			f.getvalue())
 	
 	def test_zero_pad(self):
 		f = StringIO()
@@ -74,6 +99,48 @@ class BitWriterTest(unittest.TestCase):
 		br.write(7, 1)
 		br.flush()
 		self.assertEqual(b'\x02', f.getvalue())
+
+
+class RectTest(unittest.TestCase):
+
+	def test_serialize(self):
+		rect = swf.Rect()
+		rect.x_min = 0
+		rect.x_max = 12000
+		rect.y_min = 0
+		rect.y_max = 8000
+		f = StringIO()
+		rect.serialize(f)
+		d = f.getvalue()
+		self.assertEqual(b'\x78\x00\x05\xDC\x00\x00\x0F\xA0\x00', d)
+
+
+class TagTest(unittest.TestCase):
+
+	def test_serialize(self):
+		tag = swf.Tag()
+		tag.tag_code = 1
+		tag.tag_length = 1
+		f = StringIO()
+		tag.serialize(f)
+		self.assertEqual(b'\x41\x00', f.getvalue())
+
+		tag.tag_length = 63
+		f = StringIO()
+		tag.serialize(f)
+		self.assertEqual(b'\x7F\x00\x3f\x00\x00\x00', f.getvalue())
+
+		tag.tag_length = 64
+		f = StringIO()
+		tag.serialize(f)
+		self.assertEqual(b'\x7F\x00\x40\x00\x00\x00', f.getvalue())
+
+		tag.tag_code = 9
+		tag.tag_length = 3
+		f = StringIO()
+		tag.serialize(f)
+		self.assertEqual(b'\x43\x02', f.getvalue())
 	
+
 if __name__ == '__main__':
 	unittest.main()
