@@ -533,7 +533,7 @@ class Tag(SwfObject):
 				f.write(struct.pack('<HI', code_and_length, self.tag_length))
 		self._serialize(f)
 	
-	def _serialize(self):
+	def _serialize(self, f):
 		'''To be overridden by subclasses to serialize their data.'''
 		pass
 
@@ -995,7 +995,7 @@ class SwfFile(SwfObject):
 			yield tag
 			last_tag = tag
 	
-	def save(self, file_name):
+	def save(self, file_name, iter_body=None):
 		'''Saves self to a SWF file.
 
 		The file_length field in SWF header will be fixed accordingly.
@@ -1003,23 +1003,27 @@ class SwfFile(SwfObject):
 		Args:
 			file_name (string): A file to write to. This file will be
 				overwritten.
+			iter_body (iterator): An iterator of Tag objects. If this
+				is None, the current object's body attribute is used.
 		
 		Raises:
-			SwfException: If this object does not have body attribute.
+			SwfException: If iter_body is None and self.body is not set.
 		
 		'''
 
-		if 'body' not in self.__dict__:
-			raise SwfException('File body is required')
+		if not iter_body:
+			if 'body' not in self.__dict__:
+				raise SwfException('File body is required')
+			iter_body = self.body
 		
 		fio = StringIO()
 		self.header.frame_header.serialize(fio)
-		for tag in self.body:
+		for tag in iter_body:
 			tag.serialize(fio)
 		data = fio.getvalue()
 		self.header.file_header.file_length = 8 + len(data)
 		if self.header.file_header.compressed:
-			data = data = zlib.compress(data)
+			data = zlib.compress(data)
 		
 		f = open(file_name, 'wb')
 		try:
