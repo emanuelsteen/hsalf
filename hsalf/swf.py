@@ -207,18 +207,42 @@ class BitWriter(object):
 
 
 class SwfObject(object):
+	'''An interface from which all SWF related objects are derived.
+
+	Two methods must be provided are serialize and deserialize.
+
+	'''
 
 	def __init__(self):
 		pass
 	
 	def serialize(self, f):
+		'''Writes this object to file-like object f in specified format.
+
+		Args:
+			f (file-like object): A file to write to.
+		
+		'''
+
 		raise NotImplemented()
 	
 	def deserialize(self, f):
+		'''Populates self with data from a file-like object f.
+
+		Args:
+			f (file-like object): A file to read from.
+		
+		Returns:
+			self: If deserialization succeeds.
+			None: If not.
+		
+		'''
+
 		raise NotImplemented()
 
 
 class Fixed32(SwfObject):
+	'''Represents a 16.16 fixed value according to SWF spec.'''
 
 	def __init__(self, value=0):
 		self.value = value
@@ -234,6 +258,7 @@ class Fixed32(SwfObject):
 
 
 class String(SwfObject):
+	'''Represents a String according to SWF spec.'''
 
 	def __init__(self, value=''):
 		pos = value.find('\x00')
@@ -258,6 +283,7 @@ class String(SwfObject):
 
 
 class RgbColor(SwfObject):
+	'''Represents an RGB color according to SWF spec.'''
 
 	def __init__(self, r=0, g=0, b=0):
 		self.r = r
@@ -273,6 +299,7 @@ class RgbColor(SwfObject):
 
 
 class RgbaColor(SwfObject):
+	'''Represents an RGBA color according to SWF spec.'''
 
 	def __init__(self, r=0, g=0, b=0, a=0):		
 		self.r = r
@@ -290,6 +317,7 @@ class RgbaColor(SwfObject):
 
 
 class Rect(SwfObject):
+	'''Represents a RECT record according to SWF spec.'''
 
 	def __init__(self):
 		self.nbits = 0
@@ -324,6 +352,7 @@ class Rect(SwfObject):
 
 
 class Matrix(SwfObject):
+	'''Represents a MATRIX record according to SWF spec.'''
 
 	def __init__(self):
 		self.scale = None
@@ -352,6 +381,14 @@ class Matrix(SwfObject):
 
 
 class FileHeader(SwfObject):
+	'''Represents the first 8 bytes of an SWF file.
+
+	The attributes are:
+		signature (string): Either 'FWS' or 'CWS'.
+		version (int): Version of this SWF file.
+		file_length (int): The length of the file, including this header.
+
+	'''
 
 	def __init__(self):
 		self.signature = 'FWS'
