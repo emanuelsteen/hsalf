@@ -149,7 +149,10 @@ class BitWriter(object):
 
 		'''
 
+		if not self.buffer:
+			return
 		data = b''.join(self.buffer)
+		self.buffer = []
 		remain = len(data) % 8
 		if remain != 0:
 			remain = 8 - remain
