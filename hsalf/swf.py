@@ -13,6 +13,14 @@ SCREEN_VIDEO_CODEC = 3
 
 LATIN, JAPANESE, KOREAN, SIMPLIFIED_CHINESE, TRADITIONAL_CHINESE = range(1, 6)
 
+SND_ADPCM = 1
+SND_MP3 = 2
+
+SND_MONO = 0
+SND_STEREO = 1
+
+SET_BACKGROUND_COLOR = 9
+SOUND_STREAM_HEAD = 18
 VIDEOFRAME = 61
 
 
@@ -530,15 +538,23 @@ class Tag(SwfObject):
 		
 		'''
 
-		if tag:
-			code_and_length = self.tag_code << 6
-			if self.tag_length < 63:
-				code_and_length |= self.tag_length
-				f.write(struct.pack('<H', code_and_length))
-			else:
-				code_and_length |= 63
-				f.write(struct.pack('<HI', code_and_length, self.tag_length))
-		self._serialize(f)
+		if not tag:
+			self._serialize(f)
+			return
+		
+		data = StringIO()
+		self._serialize(data)
+		data = data.getvalue()
+
+		self.tag_length = len(data)
+		code_and_length = self.tag_code << 6
+		if self.tag_length < 63:
+			code_and_length |= self.tag_length
+			f.write(struct.pack('<H', code_and_length))
+		else:
+			code_and_length |= 63
+			f.write(struct.pack('<HI', code_and_length, self.tag_length))
+		f.write(data)
 	
 	def _serialize(self, f):
 		'''To be overridden by subclasses to serialize their data.'''
@@ -556,6 +572,79 @@ class UnknownTag(Tag):
 
 	def _serialize(self, f):
 		f.write(self.data)
+
+
+class SetBackgroundColorTag(Tag):
+	'''SetBackgroundColor tag.
+
+	Attributes:
+		background_color (RgbColor): The background color.
+	
+	'''
+
+	def __init__(self):
+		self.tag_code = SET_BACKGROUND_COLOR
+		self.background_color = RgbColor()
+	
+	def _serialize(self, f):
+		self.background_color.serialize(f)
+	
+	def _deserialize(self, f):
+		self.background_color.deserialize(f)
+
+
+class SoundStreamHeadTag(Tag):
+
+	def __init__(self):
+		self.tag_code = SOUND_STREAM_HEAD
+		self.reserved = 0
+		self.playback_sound_rate = 0
+		self.playback_sound_size = 0
+		self.playback_sound_type = 0
+		self.stream_sound_compression = 0
+		self.stream_sound_rate = 0
+		self.stream_sound_size = 0
+		self.stream_sound_type = 0
+		self.stream_sound_sample_count = 0
+		self.latency_seek = 0
+	
+	def _deserialize(self, f):
+		br = BitReader(f)
+		# ignore 4 bits
+		br.read(4)
+		self.playback_sound_rate = br.unsign_read(2)
+		self.playback_sound_size = br.unsign_read(1)
+		if self.playback_sound_size != 1:
+			raise CorruptedSwfException('Playback sound size is always 1')
+		self.playback_sound_type = br.unsign_read(1)
+		self.stream_sound_compression = br.unsign_read(4)
+		if self.stream_sound_compression not in (SND_ADPCM, SND_MP3):
+			raise CorruptedSwfException('Stream sound compression')
+		self.stream_sound_rate = br.unsign_read(2)
+		self.stream_sound_size = br.unsign_read(1)
+		if self.stream_sound_size != 1:
+			raise CorruptedSwfException('Stream sound size is always 1')
+		self.stream_sound_type = br.unsign_read(1)
+		self.stream_sound_sample_count = struct.unpack('<H', f.read(2))[0]
+		if self.stream_sound_compression == SND_MP3 and self.tag_length > 4:
+			self.latency_seek = struct.unpack('<h', f.read(2))[0]
+	
+	def _serialize(self, f):
+		bw = BitWriter(f)
+		bw.write(4, 0)
+		bw.write(2, self.playback_sound_rate)
+		bw.write(1, self.playback_sound_size)
+		bw.write(1, self.playback_sound_type)
+		bw.write(4, self.stream_sound_compression)
+		bw.write(2, self.stream_sound_rate)
+		bw.write(1, self.stream_sound_size)
+		bw.write(1, self.stream_sound_type)
+		bw.flush()
+		if self.stream_sound_compression == SND_MP3 and self.latency_seek:
+			f.write(struct.pack('<Hh', self.stream_sound_sample_count,
+				self.latency_seek))
+		else:
+			f.write(struct.pack('<H', self.stream_sound_sample_count))
 
 
 class ScreenVideoBlock(SwfObject):
@@ -943,6 +1032,8 @@ class SwfFile(SwfObject):
 	'''
 
 	decoders = {
+		SET_BACKGROUND_COLOR: SetBackgroundColorTag,
+		SOUND_STREAM_HEAD: SoundStreamHeadTag,
 		VIDEOFRAME: VideoFrameTag,
 	}
 
