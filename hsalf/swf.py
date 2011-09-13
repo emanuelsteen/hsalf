@@ -594,6 +594,30 @@ class SetBackgroundColorTag(Tag):
 
 
 class SoundStreamHeadTag(Tag):
+	'''SoundStreamHead tag.
+
+	Attributes:
+		reserved (int): Always 0.
+		playback_sound_rate (int):
+			0: 5.5 kHz
+			1: 11 kHz
+			2: 22 kHz
+			3: 44 kHz
+		playback_sound_size (int): Always 1 (16 bit).
+		playback_sound_type (int): Either SND_MONO or SND_STEREO.
+		stream_sound_compression (int): Either SND_ADPCM or SND_MP3.
+			SND_MP3 is supported from SWF v4.
+		stream_sound_rate (int):
+			0: 5.5 kHz
+			1: 11 kHz
+			2: 22 kHz
+			3: 44 kHz
+		stream_sound_size (int): Always 1 (16 bit).
+		stream_sound_type (int): Either SND_MONO or SND_STEREO.
+		stream_sound_sample_count (int): Average number of samples.
+		latency_seek (int): Number of samples to skip.
+	
+	'''
 
 	def __init__(self):
 		self.tag_code = SOUND_STREAM_HEAD
