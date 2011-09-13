@@ -17,18 +17,17 @@ VIDEOFRAME = 61
 
 
 class SwfException(Exception):
+	'''The top most exception class in this module.'''
 	pass
 
 
 class IoSwfException(SwfException):
-	pass
-
-
-class CompressedSwfException(SwfException):
+	'''Exception related to parsing/writing SWF.'''
 	pass
 
 
 class CorruptedSwfException(SwfException):
+	'''Exception raised when SWF file is cannot be parsed.'''
 	pass
 
 
