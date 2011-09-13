@@ -445,6 +445,13 @@ class FrameHeader(SwfObject):
 
 
 class Header(SwfObject):
+	'''Represents the full header record.
+
+	Attributes:
+		file_header (FileHeader): File header.
+		frame_header (FrameHeader): Frame header.
+	
+	'''
 
 	def __init__(self, file_header, frame_header):
 		self.file_header = file_header
@@ -459,6 +466,13 @@ class Header(SwfObject):
 
 
 class Tag(SwfObject):
+	'''Represents an SWF tag.
+
+	Attributes:
+		tag_code (int): The tag code.
+		tag_length (int): The tag length, excluding tag_code and tag_length.
+	
+	'''
 	
 	def __init__(self, tag=None):
 		if not tag:
@@ -473,6 +487,19 @@ class Tag(SwfObject):
 		return self
 	
 	def deserialize(self, f, tag=True):
+		'''Loads this tag from file-like object f.
+
+		Args:
+			f (file-like object): A file to load from.
+			tag (bool): True to start from the beginning of this tag.
+				False to skip tag_code and tag_length.
+		
+		Returns:
+			self: If data were loaded successfully.
+			None: Otherwise.
+
+		'''
+
 		if tag:
 			code_and_length = struct.unpack('<H', f.read(2))[0]
 			self.tag_length = code_and_length & 0b111111
@@ -483,9 +510,19 @@ class Tag(SwfObject):
 		return self
 
 	def _deserialize(self, f):
+		'''To be overridden by subclasses to deserialize their data.'''
 		pass
 
 	def serialize(self, f, tag=True):
+		'''Writes this tag into a file-like object.
+
+		Args:
+			f (file-like object): A file to write to.
+			tag (bool): True to also write tag_code and tag_length before
+				writing tag data.
+		
+		'''
+
 		if tag:
 			code_and_length = self.tag_code << 6
 			if self.tag_length < 63:
@@ -497,10 +534,12 @@ class Tag(SwfObject):
 		self._serialize(f)
 	
 	def _serialize(self):
+		'''To be overridden by subclasses to serialize their data.'''
 		pass
 
 
 class UnknownTag(Tag):
+	'''Unknown tag.'''
 
 	def __init__(self):
 		self.data = ''
@@ -513,6 +552,15 @@ class UnknownTag(Tag):
 
 
 class ScreenVideoBlock(SwfObject):
+	'''Represents a block in a Screen Video frame.
+
+	Attributes:
+		width (int): The block width.
+		height (int): The block height.
+		pixels (sequence of BgrColor): The pixels arranged from bottom left
+			to top right.
+	
+	'''
 
 	def __init__(self, width, height):
 		self.width = width
@@ -557,8 +605,31 @@ class ScreenVideoBlock(SwfObject):
 
 
 class ScreenVideoPacket(SwfObject):
+	'''Represents SCREENVIDEOPACKET according to SWF spec.
+
+	Attributes:
+		frame_type (int): Either KEY_FRAME or INTER_FRAME.
+		codec_id (int): 3 for SCREEN_VIDEO_CODEC.
+		block_width (int): The block width, multiple of 16.
+		block_height (int): The block height, multiple of 16.
+		image_width (int): The frame width.
+		image_height (int): The frame height.
+		hoz_blk_cnt (int): Number of blocks in a row.
+		ver_blk_cnt (int): Number of blocks in a column.
+		block_count (int): Number of blocks.
+		image_blocks (sequence of ScreenVideoBlock): The pixel data.
+	
+	'''
 
 	class BgrColor(SwfObject):
+		'''Represents a BGR color.
+
+		Attributes:
+			b (int): Blue component.
+			g (int): Green component.
+			r (int): Red component.
+		
+		'''
 
 		def __init__(self, b=0, g=0, r=0):
 			self.b = b
@@ -618,6 +689,8 @@ class ScreenVideoPacket(SwfObject):
 		return self
 	
 	def prepare_blocks(self):
+		'''Initializes this object's image_blocks.'''
+
 		self.hoz_blk_cnt = (self.image_width + self.block_width - 1) // \
 			self.block_width
 		self.ver_blk_cnt = (self.image_height + self.block_height - 1) // \
@@ -626,6 +699,17 @@ class ScreenVideoPacket(SwfObject):
 		self.image_blocks = [None] * self.block_count
 
 	def get_block_dimension(self, block_nr):
+		'''Returns a block's width and height.
+
+		Args:
+			block_nr (int): The block number, zero-indexed. The
+				first block is at lower left corner.
+		
+		Returns:
+			width, height (tuple): The width and height.
+
+		'''
+
 		row = block_nr // self.hoz_blk_cnt
 		col = block_nr % self.hoz_blk_cnt
 		width = self.block_width if col < self.hoz_blk_cnt - 1 else \
@@ -635,12 +719,29 @@ class ScreenVideoPacket(SwfObject):
 		return width, height
 
 	def fill_blocks(self, f):
+		'''Populates this object's image_blocks with pixel data from f.
+		
+		Args:
+			f (file-like object): A file to read from.
+		
+		'''
+
 		for block_nr in xrange(self.block_count):
 			width, height = self.get_block_dimension(block_nr)
 			svb = ScreenVideoBlock(width, height).deserialize(f)
 			self.image_blocks[block_nr] = svb
 
 	def to_image(self, image):
+		'''Dumps pixels to an image.
+
+		Args:
+			image (Image): An RGB image.
+		
+		Returns:
+			image: The same passed in image.
+		
+		'''
+
 		pixel_access = image.load()
 		for block_nr, svb in enumerate(self.image_blocks):
 			if not svb:
@@ -711,6 +812,16 @@ class ScreenVideoPacket(SwfObject):
 		self.fill_blocks_from_image(img, previous_frame)
 	
 	def fill_blocks_from_image(self, img, previous_frame=None):
+		'''Grabs pixel data from an image.
+
+		If there is a previous_frame, unchanged block will be set to None.
+
+		Args:
+			img (Image): An image to grab pixels from.
+			previous_frame (ScreenVideoPacket): The previous frame.
+		
+		'''
+
 		for block_nr in xrange(self.block_count):
 			width, height = self.get_block_dimension(block_nr)
 			svb = ScreenVideoBlock(width, height)
@@ -747,6 +858,14 @@ class ScreenVideoPacket(SwfObject):
 
 
 class VideoFrameTag(Tag):
+	'''Represents VIDEOFRAME tag.
+
+	Attributes:
+		stream_id (int): The stream this frame belongs to.
+		frame_num (int): The frame number in that stream.
+		video_data (bytestring): Frame data in encoded form.
+	
+	'''
 
 	def __init__(self):
 		self.tag_code = VIDEOFRAME
