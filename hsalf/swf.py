@@ -174,7 +174,7 @@ class RgbColor(SwfObject):
 		self.b = b
 	
 	def deserialize(self, f):
-		self.r, self.g, self.b = struct.unpack('<BBB', ensure_read(f, 3))
+		self.r, self.g, self.b = struct.unpack('<BBB', f.read(3))
 		return self
 	
 	def serialize(self, f):
@@ -191,7 +191,7 @@ class RgbaColor(SwfObject):
 	
 	def deserialize(self, f):
 		self.r, self.g, self.b, self.a = \
-			struct.unpack('<BBBB', ensure_read(f, 4))
+			struct.unpack('<BBBB', f.read(4))
 		return self
 	
 	def serialize(self, f):
@@ -270,7 +270,7 @@ class FileHeader(SwfObject):
 	
 	def deserialize(self, f):
 		signature, version, length = \
-			struct.unpack('<3sBI', ensure_read(f, 8))
+			struct.unpack('<3sBI', f.read(8))
 		if signature not in ('FWS', 'CWS'):
 			raise SwfException('Invalid signature')
 		if signature[0] == 'C':
@@ -293,7 +293,7 @@ class FrameHeader(SwfObject):
 
 	def deserialize(self, f):
 		size = Rect().deserialize(f)
-		rate, count = struct.unpack('<HH', ensure_read(f, 4))
+		rate, count = struct.unpack('<HH', f.read(4))
 		self.frame_size = size
 		self.frame_rate = rate
 		self.frame_count = count
@@ -334,7 +334,7 @@ class Tag(SwfObject):
 	
 	def deserialize(self, f, tag=True):
 		if tag:
-			code_and_length = struct.unpack('<H', ensure_read(f, 2))[0]
+			code_and_length = struct.unpack('<H', f.read(2))[0]
 			self.tag_length = code_and_length & 0b111111
 			self.tag_code = code_and_length >> 6
 			if self.tag_length >= 63:
@@ -445,7 +445,7 @@ class ScreenVideoPacket(SwfObject):
 			return hash((self.b, self.g, self.r))
 		
 		def deserialize(self, f):
-			self.b, self.g, self.r = [ord(x) for x in ensure_read(f, 3)]
+			self.b, self.g, self.r = struct.unpack('BBB', f.read(3))
 			return self
 		
 		def serialize(self, f):
@@ -617,8 +617,7 @@ class VideoFrameTag(Tag):
 	def _deserialize(self, f):
 		if self.tag_length < 4:
 			raise CorruptedSwfException()
-		self.stream_id, self.frame_num = struct.unpack('<HH',
-			ensure_read(f, 4))
+		self.stream_id, self.frame_num = struct.unpack('<HH', f.read(4))
 		self.video_data = ensure_read(f, self.tag_length - 4)
 
 
