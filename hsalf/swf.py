@@ -402,6 +402,7 @@ class FileHeader(SwfObject):
 			raise SwfException('Invalid signature')
 		self.signature = signature
 		self.version = version
+		self.file_length = length
 		return self
 	
 	def _compressed(self):
