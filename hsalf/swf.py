@@ -548,7 +548,7 @@ class UnknownTag(Tag):
 		self.data = ensure_read(f, self.tag_length)
 
 	def _serialize(self, f):
-		f.write(data)
+		f.write(self.data)
 
 
 class ScreenVideoBlock(SwfObject):
@@ -986,7 +986,7 @@ class SwfFile(SwfObject):
 		while True:
 			try:
 				tag = Tag().deserialize(self.file)
-			except IoSwfException:
+			except struct.error:
 				if last_tag.tag_code == 0:
 					break
 				raise CorruptedSwfException()
@@ -996,4 +996,34 @@ class SwfFile(SwfObject):
 			last_tag = tag
 	
 	def save(self, file_name):
-		raise NotImplemented()
+		'''Saves self to a SWF file.
+
+		The file_length field in SWF header will be fixed accordingly.
+
+		Args:
+			file_name (string): A file to write to. This file will be
+				overwritten.
+		
+		Raises:
+			SwfException: If this object does not have body attribute.
+		
+		'''
+
+		if 'body' not in self.__dict__:
+			raise SwfException('File body is required')
+		
+		fio = StringIO()
+		self.header.frame_header.serialize(fio)
+		for tag in self.body:
+			tag.serialize(fio)
+		data = fio.getvalue()
+		self.header.file_header.file_length = 8 + len(data)
+		if self.header.file_header.compressed:
+			data = data = zlib.compress(data)
+		
+		f = open(file_name, 'wb')
+		try:
+			self.header.file_header.serialize(f)
+			f.write(data)
+		finally:
+			f.close()
