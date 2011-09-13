@@ -425,10 +425,10 @@ class ScreenVideoPacket(SwfObject):
 			self.g = g
 			self.r = r
 
-		def to_rgb(self):
+		def to_rgb_tuple(self):
 			return (self.r, self.g, self.b)
 		
-		def from_rgb(self, rgb):
+		def from_rgb_tuple(self, rgb):
 			self.r, self.g, self.b = rgb
 		
 		def __repr__(self):
@@ -514,7 +514,7 @@ class ScreenVideoPacket(SwfObject):
 				if pixel:
 					y = start_y - row
 					x = start_x + col
-					pixel_access[x, y] = pixel.to_rgb()
+					pixel_access[x, y] = pixel.to_rgb_tuple()
 				col += 1
 				if col >= svb.width:
 					row += 1
@@ -589,7 +589,7 @@ class ScreenVideoPacket(SwfObject):
 			while idx >= 0:
 				for pix in pixels[idx : idx + width]:
 					svb.pixels[pix_idx] = ScreenVideoPacket.BgrColor(). \
-						from_rgb(pix)
+						from_rgb_tuple(pix)
 					pix_idx += 1
 				idx -= width
 			assert(pix_idx == len(svb.pixels))
