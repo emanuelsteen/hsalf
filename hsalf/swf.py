@@ -21,7 +21,7 @@ SND_STEREO = 1
 
 SET_BACKGROUND_COLOR = 9
 SOUND_STREAM_HEAD = 18
-VIDEOFRAME = 61
+VIDEO_FRAME = 61
 
 
 class SwfException(Exception):
@@ -973,7 +973,7 @@ class ScreenVideoPacket(SwfObject):
 
 
 class VideoFrameTag(Tag):
-	'''Represents VIDEOFRAME tag.
+	'''Represents VideoFrame tag.
 
 	Attributes:
 		stream_id (int): The stream this frame belongs to.
@@ -983,7 +983,7 @@ class VideoFrameTag(Tag):
 	'''
 
 	def __init__(self):
-		self.tag_code = VIDEOFRAME
+		self.tag_code = VIDEO_FRAME
 		self.stream_id = 0
 		self.frame_num = 0
 		self.video_data = b''
@@ -1034,7 +1034,7 @@ class SwfFile(SwfObject):
 	decoders = {
 		SET_BACKGROUND_COLOR: SetBackgroundColorTag,
 		SOUND_STREAM_HEAD: SoundStreamHeadTag,
-		VIDEOFRAME: VideoFrameTag,
+		VIDEO_FRAME: VideoFrameTag,
 	}
 
 	def __init__(self, file_name=None):
