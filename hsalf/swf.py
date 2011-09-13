@@ -688,6 +688,23 @@ class ScreenVideoPacket(SwfObject):
 		self.fill_blocks(f)
 		return self
 	
+	def serialize(self, f):
+		bw = BitWriter(f)
+		bw.write(4, self.frame_type)
+		bw.write(4, self.codec_id)
+		bw.write(4, self.block_width // 16 - 1)
+		bw.write(12, self.image_width)
+		bw.write(4, self.block_height // 16 - 1)
+		bw.write(12, self.image_height)
+		bw.flush()
+		data = StringIO()
+		for blk in self.image_blocks:
+			if blk:
+				blk.serialize(data)
+			else:
+				data.write('\x00\x00')
+		f.write(data.getvalue())
+
 	def prepare_blocks(self):
 		'''Initializes this object's image_blocks.'''
 
