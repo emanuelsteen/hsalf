@@ -406,7 +406,7 @@ class FileHeader(SwfObject):
 		return self
 	
 	def _compressed(self):
-		if signature[0] == 'C':
+		if self.signature[0] == 'C':
 			return True
 		return False
 	compressed = property(_compressed)
