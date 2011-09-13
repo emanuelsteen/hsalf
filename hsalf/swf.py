@@ -320,7 +320,6 @@ class Rect(SwfObject):
 	'''Represents a RECT record according to SWF spec.'''
 
 	def __init__(self):
-		self.nbits = 0
 		self.x_min = 0
 		self.x_max = 0
 		self.y_min = 0
