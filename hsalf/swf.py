@@ -859,11 +859,11 @@ class ScreenVideoPacket(SwfObject):
 			pix_idx = 0
 			while idx >= 0:
 				for pix in pixels[idx : idx + width]:
-					svb.pixels[pix_idx] = ScreenVideoPacket.BgrColor(). \
-						from_rgb_tuple(pix)
+					pixel = ScreenVideoPacket.BgrColor()
+					pixel.from_rgb_tuple(pix)
+					svb.pixels.append(pixel)
 					pix_idx += 1
 				idx -= width
-			assert(pix_idx == len(svb.pixels))
 
 			# check if this block and the previous one is the same
 			# if it is, we do not need this block
