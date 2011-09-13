@@ -871,13 +871,19 @@ class VideoFrameTag(Tag):
 		self.tag_code = VIDEOFRAME
 		self.stream_id = 0
 		self.frame_num = 0
-		self.video_data = ''
+		self.video_data = b''
 	
 	def _deserialize(self, f):
 		if self.tag_length < 4:
 			raise CorruptedSwfException()
 		self.stream_id, self.frame_num = struct.unpack('<HH', f.read(4))
 		self.video_data = ensure_read(f, self.tag_length - 4)
+
+	def _serialize(self, f):
+		# note that user must fix self.tag_length themselves before
+		# calling serialize().
+		f.write(struct.pack('<HH', self.stream_id, self.frame_num))
+		f.write(self.video_data)
 
 
 class SwfFile(SwfObject):
