@@ -856,13 +856,11 @@ class ScreenVideoPacket(SwfObject):
 			pixels = list(crop.getdata())
 
 			idx = width * (height - 1)
-			pix_idx = 0
 			while idx >= 0:
 				for pix in pixels[idx : idx + width]:
 					pixel = ScreenVideoPacket.BgrColor()
 					pixel.from_rgb_tuple(pix)
 					svb.pixels.append(pixel)
-					pix_idx += 1
 				idx -= width
 
 			# check if this block and the previous one is the same
