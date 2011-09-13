@@ -743,10 +743,12 @@ class ScreenVideoPacket(SwfObject):
 		
 		'''
 
-		for block_nr in xrange(self.block_count):
+		block_nr = 0
+		while block_nr < self.block_count:
 			width, height = self.get_block_dimension(block_nr)
 			svb = ScreenVideoBlock(width, height).deserialize(f)
 			self.image_blocks[block_nr] = svb
+			block_nr += 1
 
 	def to_image(self, image):
 		'''Dumps pixels to an image.
@@ -839,7 +841,8 @@ class ScreenVideoPacket(SwfObject):
 		
 		'''
 
-		for block_nr in xrange(self.block_count):
+		block_nr = 0
+		while block_nr < self.block_count:
 			width, height = self.get_block_dimension(block_nr)
 			svb = ScreenVideoBlock(width, height)
 
@@ -868,6 +871,7 @@ class ScreenVideoPacket(SwfObject):
 				previous_frame.image_blocks[block_nr] == svb:
 				svb = None
 			self.image_blocks[block_nr] = svb
+			block_nr += 1
 
 	def __repr__(self):
 		return '%s%r' % (type(self).__name__, (
