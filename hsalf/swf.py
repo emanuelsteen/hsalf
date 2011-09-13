@@ -32,6 +32,16 @@ class CorruptedSwfException(SwfException):
 
 
 def ensure_read(f, length):
+	'''Reads exactly length bytes from f.
+
+	Returns:
+		length bytes from f.
+	
+	Raises:
+		IoSwfException: If there is less than length bytes available.
+	
+	'''
+
 	s = f.read(length)
 	if len(s) != length:
 		raise IoSwfException('Expected {0} bytes but only available {1} '
@@ -40,12 +50,31 @@ def ensure_read(f, length):
 
 
 class BitReader(object):
+	'''BitReader reads bits from a wrapped file-like object.'''
 
 	def __init__(self, f):
+		'''Construct a BitReader object from f.
+
+		Args:
+			f (file-like object): A file-like object to be wrapped.
+		
+		'''
+
 		self.fio = f
 		self.backlog = ''
 	
 	def read(self, length, sign=False):
+		'''Reads length bits from wrapped file.
+
+		Args:
+			length (int): Number of bits to read.
+			sign (bool): True to treat the bits as signed value.
+		
+		Returns:
+			An integer value.
+		
+		'''
+
 		if len(self.backlog) < length:
 			more = length - len(self.backlog)
 			bytes = (7 + more) // 8
@@ -61,17 +90,52 @@ class BitReader(object):
 		return r
 
 	def sign_read(self, length):
+		'''Reads length bits from wrapped file,
+		treating it as signed value.
+
+		Args:
+			length (int): Number of bits to read.
+		
+		Returns:
+			A signed integer value.
+		
+		Raises:
+			ValueError: If length is less than 2.
+
+		'''
+
 		if length < 2:
 			raise ValueError('signed value must have length greater than 1')
 		return self.read(length, True)
 
 	def unsign_read(self, length):
+		'''Reads length bits from wrapped file,
+		treating it as unsigned value.
+
+		This is the same as calling `read(length, False)`.
+
+		Args:
+			length (int): Number of bits to read.
+		
+		Returns:
+			An unsigned integer value.
+		
+		'''
+
 		return self.read(length, False)
 	
 
 class BitWriter(object):
+	'''BitWriter writes bits to a wrapped file-like object.'''
 
 	def __init__(self, f):
+		'''Constructs a BitWriter from f.
+
+		Args:
+			f (file-like object): A file-like object to write to.
+		
+		'''
+
 		self.fio = f
 		self.buffer = []
 	
@@ -79,6 +143,12 @@ class BitWriter(object):
 		self.flush()
 	
 	def flush(self):
+		'''Writes the buffer out to wrapped file.
+
+		The buffer will be padded with enough 0 bits to make it byte-aligned.
+
+		'''
+
 		data = b''.join(self.buffer)
 		remain = len(data) % 8
 		if remain != 0:
@@ -95,6 +165,17 @@ class BitWriter(object):
 	
 	@staticmethod
 	def required_bits(*numbers):
+		'''Returns the minimum number of bits required to represent any
+		of the numbers as signed values.
+
+		Args:
+			numbers (sequence): A sequence of integer values.
+		
+		Returns:
+			The mininum required bits.
+
+		'''
+
 		# min int32
 		max_num = (-2) ** 31
 		for num in numbers:
@@ -108,6 +189,17 @@ class BitWriter(object):
 		return len('{0:b}'.format(max_num)) + 1
 	
 	def write(self, bits, number):
+		'''Writes number to wrapped file as bits-bit value.
+
+		Note that write does not flush. Consecutive calls to write
+		will append bits to the buffer and will not byte-align it.
+
+		Args:
+			bits (int): Number of bits to represent number.
+			number (int): The number to be written.
+		
+		'''
+
 		if number < 0:
 			number = 2 ** bits + number
 		fmt = '{{0:0{0}b}}'.format(bits)
