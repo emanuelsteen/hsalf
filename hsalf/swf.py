@@ -990,11 +990,12 @@ class SwfFile(SwfObject):
 	def iter_body(self):
 		'''Returns an iterator through all tags, including the END tag.'''
 
+		last_tag = None
 		while True:
 			try:
 				tag = Tag().deserialize(self.file)
 			except struct.error:
-				if last_tag.tag_code == 0:
+				if last_tag and last_tag.tag_code == 0:
 					break
 				raise CorruptedSwfException()
 			clz = SwfFile.decoders.get(tag.tag_code, UnknownTag)
