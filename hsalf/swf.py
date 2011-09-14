@@ -749,8 +749,7 @@ class PlaceObject2Tag(Tag):
 		if has_matrix:
 			self.matrix = Matrix().deserialize(f)
 		if has_color_trans:
-			# TODO
-			self.color_transform = None
+			self.color_transform = ColorTransformWithAlpha().deserialize(f)
 		if has_ratio:
 			self.ratio = struct.unpack('<H', f.read(2))[0]
 		if has_name:
