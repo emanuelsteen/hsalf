@@ -418,6 +418,98 @@ class Matrix(SwfObject):
 		bw.flush()
 
 
+class ColorTransform(SwfObject):
+	'''Represents CXFORM structure.
+
+	Attributes:
+		mult_term (list of int): Red, green, and blue mult terms.
+		add_term (list of int): Red, green, and blue add terms.
+
+	'''
+
+	def __init__(self):
+		self.mult_term = None
+		self.add_term = None
+	
+	def deserialize(self, f):
+		br = BitReader(f)
+		has_add = br.unsign_read(1)
+		has_mult = br.unsign_read(1)
+		nbits = br.unsign_read(4)
+		if has_mult:
+			self.mult_term = [br.sign_read(nbits),
+				br.sign_read(nbits), br.sign_read(nbits)]
+		if has_add:
+			self.add_term = [br.sign_read(nbits),
+				br.sign_read(nbits), br.sign_read(nbits)]
+		return self
+	
+	def serialize(self, f):
+		bw = BitWriter(f)
+		bits = [self.add_term is not None, self.mult_term is not None]
+		for bit in bits:
+			bw.write(1, bit)
+		numbers = self.add_term if self.add_term is not None else []
+		numbers.extend(self.mult_term if self.mult_term is not None else [])
+		nbits = BitWriter.required_bits(*numbers)
+		bw.write(4, nbits)
+		if bits[1]:
+			bw.write(nbits, self.mult_term[0])
+			bw.write(nbits, self.mult_term[1])
+			bw.write(nbits, self.mult_term[2])
+		if bits[0]:
+			bw.write(nbits, self.add_term[0])
+			bw.write(nbits, self.add_term[1])
+			bw.write(nbits, self.add_term[2])
+
+
+class ColorTransformWithAlpha(SwfObject):
+	'''Represents CXFORMWITHALPHA structure.
+
+	Attributes:
+		mult_term (list of int): Red, green, blue, alpha mult terms.
+		add_term (list of int): Red, green, blue, alpha add terms.
+
+	'''
+
+	def __init__(self):
+		self.mult_term = None
+		self.add_term = None
+	
+	def deserialize(self, f):
+		br = BitReader(f)
+		has_add = br.unsign_read(1)
+		has_mult = br.unsign_read(1)
+		nbits = br.unsign_read(4)
+		if has_mult:
+			self.mult_term = [br.sign_read(nbits), br.sign_read(nbits),
+				br.sign_read(nbits), br.sign_read(nbits)]
+		if has_add:
+			self.add_term = [br.sign_read(nbits), br.sign_read(nbits),
+			br.sign_read(nbits), br.sign_read(nbits)]
+		return self
+	
+	def serialize(self, f):
+		bw = BitWriter(f)
+		bits = [self.add_term is not None, self.mult_term is not None]
+		for bit in bits:
+			bw.write(1, bit)
+		numbers = self.add_term if self.add_term is not None else []
+		numbers.extend(self.mult_term if self.mult_term is not None else [])
+		nbits = BitWriter.required_bits(*numbers)
+		bw.write(4, nbits)
+		if bits[1]:
+			bw.write(nbits, self.mult_term[0])
+			bw.write(nbits, self.mult_term[1])
+			bw.write(nbits, self.mult_term[2])
+			bw.write(nbits, self.mult_term[3])
+		if bits[0]:
+			bw.write(nbits, self.add_term[0])
+			bw.write(nbits, self.add_term[1])
+			bw.write(nbits, self.add_term[2])
+			bw.write(nbits, self.add_term[3])
+
+
 class FileHeader(SwfObject):
 	'''Represents the first 8 bytes of an SWF file.
 
