@@ -385,11 +385,37 @@ class Matrix(SwfObject):
 			rotate2 = br.sign_read(rotate_bits)
 			self.rotate = [rotate1 / 65536.0, rotate2 / 65536.0]
 		translate_bits = br.unsign_read(5)
-		self.translate = [0, 0]
 		if translate_bits > 0:
 			self.translate[0] = br.sign_read(translate_bits)
 			self.translate[1] = br.sign_read(translate_bits)
 		return self
+
+	def serialize(self, f):
+		bw = BitWriter(f)
+		if self.scale is not None:
+			bw.write(1, 1)
+			bits = BitWriter.required_bits(*self.scale)
+			bw.write(5, bits)
+			bw.write(bits, self.scale[0])
+			bw.write(bits, self.scale[1])
+		else:
+			bw.write(1, 0)
+		if self.rotate is not None:
+			bw.write(1, 1)
+			bits = BitWriter.required_bits(*self.rotate)
+			bw.write(5, bits)
+			bw.write(bits, self.rotate[0])
+			bw.write(bits, self.rotate[1])
+		else:
+			bw.write(1, 0)
+		if self.translate == [0, 0]:
+			bw.write(5, 0)
+		else:
+			bits = BitWriter.required_bits(*self.translate)
+			bw.write(5, bits)
+			bw.write(bits, self.translate[0])
+			bw.write(bits, self.translate[1])
+		bw.flush()
 
 
 class FileHeader(SwfObject):
