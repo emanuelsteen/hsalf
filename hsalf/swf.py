@@ -713,6 +713,197 @@ class SetBackgroundColorTag(Tag):
 		self.background_color.deserialize(f)
 
 
+class ClipEventFlags(SwfObject):
+	'''Represents CLIPEVENTFLAGS structure.'''
+
+	def __init__(self):
+		self.key_up = False
+		self.key_down = False
+		self.mouse_up = False
+		self.mouse_down = False
+		self.mouse_move = False
+		self.unload = False
+		self.enter_frame = False
+		self.load = False
+		self.drag_over = False
+		self.roll_out = False
+		self.roll_over = False
+		self.release_outside = False
+		self.release = False
+		self.press = False
+		self.initialize = False
+		self.data = False
+		self.construct = False
+		self.key_press = False
+		self.drag_out = False
+	
+	def deserialize(self, f):
+		br = BitReader(f)
+		self.key_up = br.unsign_read(1)
+		self.key_down = br.unsign_read(1)
+		self.mouse_up = br.unsign_read(1)
+		self.mouse_down = br.unsign_read(1)
+		self.mouse_move = br.unsign_read(1)
+		self.unload = br.unsign_read(1)
+		self.enter_frame = br.unsign_read(1)
+		self.load = br.unsign_read(1)
+		self.drag_over = br.unsign_read(1)
+		self.roll_out = br.unsign_read(1)
+		self.roll_over = br.unsign_read(1)
+		self.release_outside = br.unsign_read(1)
+		self.release = br.unsign_read(1)
+		self.press = br.unsign_read(1)
+		self.initialize = br.unsign_read(1)
+		self.data = br.unsign_read(1)
+		t = br.unsign_read(5)
+		if t:
+			raise CorruptedSwfException('Reserved must be 0')
+		self.construct = br.unsign_read(1)
+		self.key_press = br.unsign_read(1)
+		self.drag_out = br.unsign_read(1)
+		t = br.unsign_read(8)
+		if t:
+			raise CorruptedSwfException('Reserved must be 0')
+		return self
+	
+	def serialize(self, f):
+		bw = BitWriter(f)
+		bw.write(1, self.key_up)
+		bw.write(1, self.key_down)
+		bw.write(1, self.mouse_up)
+		bw.write(1, self.mouse_down)
+		bw.write(1, self.mouse_move)
+		bw.write(1, self.unload)
+		bw.write(1, self.enter_frame)
+		bw.write(1, self.load)
+		bw.write(1, self.drag_over)
+		bw.write(1, self.roll_out)
+		bw.write(1, self.roll_over)
+		bw.write(1, self.release_outside)
+		bw.write(1, self.release)
+		bw.write(1, self.press)
+		bw.write(1, self.initialize)
+		bw.write(1, self.data)
+		bw.write(5, 0)
+		bw.write(1, self.construct)
+		bw.write(1, self.key_press)
+		bw.write(1, self.drag_out)
+		bw.write(8, 0)
+		bw.flush()
+
+
+class ActionRecord(SwfObject):
+	'''Represents ACTIONRECORD structure.
+
+	TODO XXX: This class needs subclassed. action_data may be removed.
+
+	Attributes:
+		action_code (int): Action code.
+		action_length (int): If action code is greater or equal than 0x80,
+			this field is the length of payload.
+		action_data (string): The payload.
+	
+	'''
+
+	def __init__(self):
+		self.action_code = 0
+		self.action_length = 0
+		self.action_data = None
+
+	def deserialize(self, f):
+		self.action_code = struct.unpack('B', f.read(1))[0]
+		if self.action_code >= 0x80:
+			self.action_length = struct.unpack('<H', f.read(1))[0]
+			self.action_data = f.read(self.action_length)
+		return self
+	
+	def serialize(self, f):
+		if self.action_code >= 0x80:
+			f.write(struct.pack('<BH', self.action_code, self.action_length))
+			f.write(self.action_data)
+		else:
+			f.write(struct.pack('B', self.action_code))
+
+
+class ClipActionRecord(SwfObject):
+	'''Represents CLIPACTIONRECORD structure.'''
+
+	def __init__(self):
+		self.event_flags = ClipEventFlags()
+		self.record_size = 0
+		self.key_code = 0
+		self.actions = []
+	
+	def deserialize(self, f):
+		self.event_flags = ClipEventFlags().deserialize(f)
+		self.record_size = struct.unpack('<I', f.read(4))[0]
+		if self.event_flags.key_press:
+			self.key_code = struct.unpack('B', f.read(1))[0]
+			size = 1
+		else:
+			size = 0
+		self.actions = []
+		while size < self.record_size:
+			action = ActionRecord().deserialize(f)
+			size += 1
+			if action.action_code >= 0x80:
+				size += action.action_length + 2
+			self.actions.append(action)
+		return self
+	
+	def serialize(self, f):
+		self.event_flags.serialize(f)
+		data = StringIO()
+		for action in self.actions:
+			action.serialize(data)
+		data = data.getvalue()
+		size += len(data)
+		if self.event_flags.key_press:
+			size += 1
+			f.write(struct.pack('<IB', size, self.key_code))
+		else:
+			f.write(struct.pack('<I', size))
+		f.write(data)
+
+
+class ClipActions(SwfObject):
+	'''Represents CLIPACTIONS structure.
+
+	TODO XXX: deserialize needs f.seek().
+
+	Attributes:
+		event_flags (ClipEventFlags): Events used in these clip actions.
+		records (ClipActionRecord): Individual event handlers
+	
+	'''
+
+	def __init__(self):
+		self.event_flags = ClipEventFlags()
+		self.records = []
+
+	def deserialize(self, f):
+		t = f.read(2)
+		if t != b'\x00\x00':
+			raise CorruptedSwfException('Reserved must be 0.')
+		self.event_flags = ClipEventFlags().deserialize(f)
+		self.records = []
+		while True:
+			look_ahead = f.read(4)
+			if look_ahead == '\x00\x00\x00\x00':
+				break
+			f.seek(-4)
+			action_record = ClipActionRecord().deserialize(f)
+			self.records.append(action_record)
+		return self
+	
+	def serialize(self, f):
+		f.write('\x00\x00')
+		self.event_flags.serialize(f)
+		for action in self.actions:
+			action.serialize(f)
+		f.write('\x00\x00\x00\x00')
+
+
 class PlaceObject2Tag(Tag):
 	'''PlaceObject2 tag.
 
