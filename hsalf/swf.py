@@ -21,6 +21,7 @@ SND_STEREO = 1
 
 SET_BACKGROUND_COLOR = 9
 SOUND_STREAM_HEAD = 18
+SOUND_STREAM_BLOCK = 19
 PLACE_OBJECT_2 = 26
 VIDEO_FRAME = 61
 
@@ -1056,6 +1057,27 @@ class SoundStreamHeadTag(Tag):
 			f.write(struct.pack('<H', self.stream_sound_sample_count))
 
 
+class SoundStreamBlockTag(Tag):
+	'''Represents a SoundStreamBlock.
+
+	TODO XXX: This tag needs broken down to precise sound data block.
+
+	Attributes:
+		sound_data (bytestring): Compressed sound data.
+	
+	'''
+
+	def __init__(self):
+		self.tag_code = SOUND_STREAM_BLOCK
+		self.sound_data = b''
+	
+	def _serialize(self, f):
+		f.write(self.sound_data)
+	
+	def _deserialize(self, f):
+		self.sound_data = f.read(self.tag_length)
+
+
 class ScreenVideoBlock(SwfObject):
 	'''Represents a block in a Screen Video frame.
 
@@ -1444,6 +1466,7 @@ class SwfFile(SwfObject):
 		SET_BACKGROUND_COLOR: SetBackgroundColorTag,
 		PLACE_OBJECT_2: PlaceObject2Tag,
 		SOUND_STREAM_HEAD: SoundStreamHeadTag,
+		SOUND_STREAM_BLOCK: SoundStreamBlockTag,
 		VIDEO_FRAME: VideoFrameTag,
 	}
 
