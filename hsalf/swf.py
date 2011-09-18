@@ -1057,6 +1057,52 @@ class SoundStreamHeadTag(Tag):
 			f.write(struct.pack('<H', self.stream_sound_sample_count))
 
 
+class Mp3SoundData(SwfObject):
+	'''Represents MP3SOUNDDATA structure.
+
+	Attributes:
+		seek_samples (int): Number of frames to be skipped.
+		frames (bytestring): MP3 frames. This could be broken into MP3FRAME.
+	
+	'''
+
+	def __init__(self):
+		self.seek_samples = 0
+		self.frames = b''
+	
+	def deserialize(self, f):
+		self.seek_samples = struct.unpack('<h', f.read(2))[0]
+		self.frames = f.read()
+		return self
+	
+	def serialize(self, f):
+		f.write(struct.pack('<h', self.seek_samples))
+		f.write(self.frames)
+	
+
+class Mp3StreamSoundData(SwfObject):
+	'''Represents MP3STREAMSOUNDDATA structure.
+
+	Attributes:
+		sample_count (int): Number of sample or sample pairs.
+		sound_data (bytestring): Mp3SoundData object.
+
+	'''
+
+	def __init__(self):
+		self.sample_count = 0
+		self.sound_data = Mp3SoundData()
+	
+	def deserialize(self, f):
+		self.sample_count = struct.unpack('<H', f.read(2))[0]
+		self.sound_data = Mp3SoundData().deserialize(f)
+		return self
+	
+	def serialize(self, f):
+		f.write(struct.pack('<H', self.sample_count))
+		self.sound_data.serialize(f)
+
+
 class SoundStreamBlockTag(Tag):
 	'''Represents a SoundStreamBlock.
 
