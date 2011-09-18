@@ -16,7 +16,7 @@ Hsalf is released under the MIT license.
 Example
 =======
 
-This example prints out file version and frame rate::
+This example prints out file version, frame rate, and all tag codes::
 
 	from hsalf import swf
 	f = swf.SwfFile('screen.swf')
@@ -45,3 +45,6 @@ This function extracts frames from a Screen Video from a Flash movie::
 				img.save('{0}{1}{2:05d}.png'.format(dst_dir, os.sep,
 					tag.frame_num))
 				last_img = img
+
+There are some sample scripts to extract other materials from SWF file in
+``scripts`` directory.
