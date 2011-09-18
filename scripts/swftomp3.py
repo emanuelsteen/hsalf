@@ -14,22 +14,23 @@ def list_stream(inp):
 	fi = swf.SwfFile(inp)
 	for tag in fi.iter_body():
 		if isinstance(tag, swf.SoundStreamHeadTag):
+			stream_id += 1
 			if tag.stream_sound_compression == swf.SND_MP3:
-				stream_id += 1
 				print 'Found MP3 stream ID', stream_id
 
 def extract_stream(inp, stream_id, outp):
 	current_id = 0
+	is_mp3 = False
 	fi = fo = None
 	try:
 		fi = swf.SwfFile(inp)
 		fo = open(outp, 'wb')
 		for tag in fi.iter_body():
 			if isinstance(tag, swf.SoundStreamHeadTag):
-				if tag.stream_sound_compression == swf.SND_MP3:
-					current_id += 1
-			if isinstance(tag, swf.SoundStreamBlockTag) and \
-				current_id == stream_id:
+				current_id += 1
+				is_mp3 = tag.stream_sound_compression == swf.SND_MP3
+			elif isinstance(tag, swf.SoundStreamBlockTag) and \
+				current_id == stream_id and is_mp3:
 				data = StringIO(tag.sound_data)
 				mp3 = swf.Mp3StreamSoundData().deserialize(data)
 				data = mp3.sound_data.frames
