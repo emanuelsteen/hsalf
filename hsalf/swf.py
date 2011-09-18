@@ -948,8 +948,7 @@ class PlaceObject2Tag(Tag):
 		if has_clip_depth:
 			self.clip_depth = struct.unpack('<H', f.read(2))[0]
 		if has_clip_actions:
-			# TODO
-			self.clip_actions = None
+			self.clip_actions = ClipActions().deserialize(f)
 
 	def _serialize(self, f):
 		bits = [0] * 8
