@@ -19,6 +19,7 @@ SND_MP3 = 2
 SND_MONO = 0
 SND_STEREO = 1
 
+SHOW_FRAME = 1
 SET_BACKGROUND_COLOR = 9
 SOUND_STREAM_HEAD = 18
 SOUND_STREAM_BLOCK = 19
@@ -720,6 +721,13 @@ class UnknownTag(Tag):
 
 	def _serialize(self, f, version=0, *args, **kw_args):
 		f.write(self.data)
+
+
+class ShowFrameTag(Tag):
+	'''Represents ShowFrame tag.'''
+
+	def __init__(self):
+		self.tag_code = SHOW_FRAME
 
 
 class SetBackgroundColorTag(Tag):
@@ -1601,6 +1609,7 @@ class SwfFile(SwfObject):
 	'''
 
 	decoders = {
+		SHOW_FRAME: ShowFrameTag,
 		SET_BACKGROUND_COLOR: SetBackgroundColorTag,
 		PLACE_OBJECT_2: PlaceObject2Tag,
 		SOUND_STREAM_HEAD: SoundStreamHeadTag,
