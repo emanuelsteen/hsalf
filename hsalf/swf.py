@@ -1753,7 +1753,7 @@ class SwfFile(SwfObject):
 		read and decompressed into memory, the underlying file is closed.
 
 		Args:
-			file_name (string): The SWF file to be loaded.
+			file_name (string or file-like): The SWF file to be loaded.
 		
 		Raises:
 			SwfException: If file is compressed but version is less
@@ -1761,14 +1761,21 @@ class SwfFile(SwfObject):
 		
 		'''
 
-		self.file = open(file_name, 'rb')
+		# assume file_name is a file-like object
+		self.file = file_name
+		should_close = False
+		if isinstance(file_name, str) or isinstance(file_name, unicode):
+			# file_name is indeed a file_name str or unicode
+			self.file = open(file_name, 'rb')
+			should_close = True
 		fih = FileHeader().deserialize(self.file)
 		if fih.compressed:
 			if fih.version < 6:
 				raise SwfException('Compression is only supported '
 					'from version 6')
 			compressed = self.file.read()
-			self.file.close()
+			if should_close:
+				self.file.close()
 			decomp = zlib.decompress(compressed)
 			self.file = StringIO(decomp)
 		frh = FrameHeader().deserialize(self.file)
@@ -1778,7 +1785,7 @@ class SwfFile(SwfObject):
 		'''Reads in header and, optionally, the body.
 
 		Args:
-			file_name (string): A file to read from.
+			file_name (string or file-like): A file to read from.
 			body (bool): True to populate self.body.
 		
 		'''
@@ -1810,8 +1817,8 @@ class SwfFile(SwfObject):
 		The file_length field in SWF header will be fixed accordingly.
 
 		Args:
-			file_name (string): A file to write to. This file will be
-				overwritten.
+			file_name (string or file-like): A file to write to. This file
+				will be overwritten.
 			iter_body (iterator): An iterator of Tag objects. If this
 				is None, the current object's body attribute is used.
 		
@@ -1835,9 +1842,14 @@ class SwfFile(SwfObject):
 		if self.header.file_header.compressed:
 			data = zlib.compress(data)
 		
-		f = open(file_name, 'wb')
+		f = file_name
+		should_close = False
+		if isinstance(f, str) or isinstance(f, unicode):
+			f = open(file_name, 'wb')
+			should_close = True
 		try:
 			self.header.file_header.serialize(f, version)
 			f.write(data)
 		finally:
-			f.close()
+			if should_close:
+				f.close()
