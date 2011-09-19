@@ -322,7 +322,7 @@ class RgbColor(SwfObject):
 class RgbaColor(SwfObject):
 	'''Represents an RGBA color according to SWF spec.'''
 
-	def __init__(self, r=0, g=0, b=0, a=0):		
+	def __init__(self, r=0, g=0, b=0, a=0):
 		self.r = r
 		self.g = g
 		self.b = b
@@ -335,6 +335,24 @@ class RgbaColor(SwfObject):
 	
 	def serialize(self, f, version=0, *args, **kw_args):
 		f.write(struct.pack('<BBBB', self.r, self.g, self.b, self.a))
+
+
+class RgbaColor(SwfObject):
+	'''Represents an ARGB color according to SWF spec.'''
+
+	def __init__(self, a=0, r=0, g=0, b=0):
+		self.r = r
+		self.g = g
+		self.b = b
+		self.a = a
+	
+	def deserialize(self, f, version=0, *args, **kw_args):
+		self.a, self.r, self.g, self.b = \
+			struct.unpack('<BBBB', f.read(4))
+		return self
+	
+	def serialize(self, f, version=0, *args, **kw_args):
+		f.write(struct.pack('<BBBB', self.a, self.r, self.g, self.b))
 
 
 class Rect(SwfObject):
