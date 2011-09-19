@@ -914,7 +914,7 @@ class ClipActionRecord(SwfObject):
 		self.actions = []
 	
 	def deserialize(self, f, version=0, *args, **kw_args):
-		self.event_flags = ClipEventFlags().deserialize(f)
+		self.event_flags = ClipEventFlags().deserialize(f, version)
 		self.record_size = struct.unpack('<I', f.read(4))[0]
 		if self.event_flags.key_press:
 			self.key_code = struct.unpack('B', f.read(1))[0]
@@ -923,7 +923,7 @@ class ClipActionRecord(SwfObject):
 			size = 0
 		self.actions = []
 		while size < self.record_size:
-			action = ActionRecord().deserialize(f)
+			action = ActionRecord().deserialize(f, version)
 			size += 1
 			if action.action_code >= 0x80:
 				size += action.action_length + 2
@@ -931,7 +931,7 @@ class ClipActionRecord(SwfObject):
 		return self
 	
 	def serialize(self, f, version=0, *args, **kw_args):
-		self.event_flags.serialize(f)
+		self.event_flags.serialize(f, version)
 		data = StringIO()
 		for action in self.actions:
 			action.serialize(data)
@@ -964,7 +964,7 @@ class ClipActions(SwfObject):
 		t = f.read(2)
 		if t != b'\x00\x00':
 			raise CorruptedSwfException('Reserved must be 0.')
-		self.event_flags = ClipEventFlags().deserialize(f)
+		self.event_flags = ClipEventFlags().deserialize(f, version)
 		self.records = []
 		look_ahead_len = 4 if version >= 6 else 2
 		while True:
@@ -972,15 +972,15 @@ class ClipActions(SwfObject):
 			if look_ahead == '\x00' * look_ahead_len:
 				break
 			f.seek(-look_ahead_len)
-			action_record = ClipActionRecord().deserialize(f)
+			action_record = ClipActionRecord().deserialize(f, version)
 			self.records.append(action_record)
 		return self
 	
 	def serialize(self, f, version=0, *args, **kw_args):
 		f.write('\x00\x00')
-		self.event_flags.serialize(f)
+		self.event_flags.serialize(f, version)
 		for action in self.actions:
-			action.serialize(f)
+			action.serialize(f, version)
 		look_ahead_len = 4 if version >= 6 else 2
 		f.write('\x00' * look_ahead_len)
 
@@ -1028,11 +1028,11 @@ class PlaceObject2Tag(Tag):
 		if has_ratio:
 			self.ratio = struct.unpack('<H', f.read(2))[0]
 		if has_name:
-			self.name = String().deserialize(f)
+			self.name = String().deserialize(f, version)
 		if has_clip_depth:
 			self.clip_depth = struct.unpack('<H', f.read(2))[0]
 		if has_clip_actions and version >= 5:
-			self.clip_actions = ClipActions().deserialize(f)
+			self.clip_actions = ClipActions().deserialize(f, version)
 
 	def _serialize(self, f, version=0, *args, **kw_args):
 		bits = [0] * 8
@@ -1057,11 +1057,11 @@ class PlaceObject2Tag(Tag):
 		if self.ratio is not None:
 			f.write(struct.pack('<H', self.ratio))
 		if self.name is not None:
-			self.name.serialize(f)
+			self.name.serialize(f, version)
 		if self.clip_depth is not None:
 			f.write(struct.pack('<H', self.clip_depth))
 		if self.clip_actions is not None and version >= 5:
-			self.clip_actions.serialize(f)
+			self.clip_actions.serialize(f, version)
 
 
 class SoundStreamHeadTag(Tag):
