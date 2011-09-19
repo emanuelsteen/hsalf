@@ -312,11 +312,11 @@ class RgbColor(SwfObject):
 		self.b = b
 	
 	def deserialize(self, f, version=0, *args, **kw_args):
-		self.r, self.g, self.b = struct.unpack('<BBB', f.read(3))
+		self.r, self.g, self.b = struct.unpack('BBB', f.read(3))
 		return self
 	
 	def serialize(self, f, version=0, *args, **kw_args):
-		f.write(struct.pack('<BBB', self.r, self.g, self.b))
+		f.write(struct.pack('BBB', self.r, self.g, self.b))
 
 
 class RgbaColor(SwfObject):
@@ -330,11 +330,11 @@ class RgbaColor(SwfObject):
 	
 	def deserialize(self, f, version=0, *args, **kw_args):
 		self.r, self.g, self.b, self.a = \
-			struct.unpack('<BBBB', f.read(4))
+			struct.unpack('BBBB', f.read(4))
 		return self
 	
 	def serialize(self, f, version=0, *args, **kw_args):
-		f.write(struct.pack('<BBBB', self.r, self.g, self.b, self.a))
+		f.write(struct.pack('BBBB', self.r, self.g, self.b, self.a))
 
 
 class ArgbColor(SwfObject):
@@ -348,11 +348,11 @@ class ArgbColor(SwfObject):
 	
 	def deserialize(self, f, version=0, *args, **kw_args):
 		self.a, self.r, self.g, self.b = \
-			struct.unpack('<BBBB', f.read(4))
+			struct.unpack('BBBB', f.read(4))
 		return self
 	
 	def serialize(self, f, version=0, *args, **kw_args):
-		f.write(struct.pack('<BBBB', self.a, self.r, self.g, self.b))
+		f.write(struct.pack('BBBB', self.a, self.r, self.g, self.b))
 
 
 class Rect(SwfObject):
