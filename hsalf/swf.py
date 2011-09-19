@@ -963,6 +963,9 @@ class PlaceObject2Tag(Tag):
 	def _deserialize(self, f, version=0, *args, **kw_args):
 		br = BitReader(f)
 		has_clip_actions = br.unsigned_read(1)
+		if version < 5 and has_clip_actions:
+			raise CorruptedSwfException('HasClipActions must be 0 in ' \
+				'version below 5.')
 		has_clip_depth = br.unsigned_read(1)
 		has_name = br.unsigned_read(1)
 		has_ratio = br.unsigned_read(1)
@@ -984,7 +987,7 @@ class PlaceObject2Tag(Tag):
 			self.name = String().deserialize(f)
 		if has_clip_depth:
 			self.clip_depth = struct.unpack('<H', f.read(2))[0]
-		if has_clip_actions:
+		if has_clip_actions and version >= 5:
 			self.clip_actions = ClipActions().deserialize(f)
 
 	def _serialize(self, f, version=0, *args, **kw_args):
@@ -994,6 +997,8 @@ class PlaceObject2Tag(Tag):
 			if self.__dict__.get(name, None) is not None:
 				bits[idx] = 1
 		bits[7] = self.move
+		if version < 5:
+			bits[0] = 0
 		bw = BitWriter(f)
 		for bit in bits:
 			bw.write(1, bit)
@@ -1011,7 +1016,7 @@ class PlaceObject2Tag(Tag):
 			self.name.serialize(f)
 		if self.clip_depth is not None:
 			f.write(struct.pack('<H', self.clip_depth))
-		if self.clip_actions is not None:
+		if self.clip_actions is not None and version >= 5:
 			self.clip_actions.serialize(f)
 
 
