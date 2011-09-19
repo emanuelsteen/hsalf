@@ -23,6 +23,7 @@ SET_BACKGROUND_COLOR = 9
 SOUND_STREAM_HEAD = 18
 SOUND_STREAM_BLOCK = 19
 PLACE_OBJECT_2 = 26
+DEFINE_VIDEO_STREAM = 60
 VIDEO_FRAME = 61
 
 
@@ -1173,6 +1174,40 @@ class SoundStreamBlockTag(Tag):
 		self.sound_data = f.read(self.tag_length)
 
 
+class DefineVideoStreamTag(Tag):
+	'''Represents a DefineVideoStream tag.'''
+
+	def __init__(self):
+		self.tag_code = DEFINE_VIDEO_STREAM
+		self.character_id = 0
+		self.num_frames = 0
+		self.width = 0
+		self.height = 0
+		self.video_flags_deblocking = 0
+		self.video_flags_smoothing = 0
+		self.codec_id = 0
+	
+	def _deserialize(self, f, version=0, *args, **kw_args):
+		self.character_id, self.num_frames, self.width, self.height = \
+			struct.unpack('<HHHH', f.read(8))
+		br = BitReader(f)
+		if br.unsigned_read(4):
+			raise CorruptedSwfException('Reserved value must be 0.')
+		self.video_flags_deblocking = br.unsigned_read(3)
+		self.video_flags_smoothing = br.unsigned_read(1)
+		self.codec_id = struct.unpack('B', f.read(1))[0]
+	
+	def _serialize(self, f, version=0, *args, **kw_args):
+		f.write(struct.pack('<HHHH', self.character_id, self.num_frames, \
+			self.width, self.height))
+		bw = BitWriter(f)
+		bw.write(4, 0)
+		bw.write(3, self.video_flags_deblocking)
+		bw.write(1, self.video_flags_smoothing)
+		bw.flush()
+		f.write(struct.pack('B', self.codec_id))
+
+
 class ScreenVideoBlock(SwfObject):
 	'''Represents a block in a Screen Video frame.
 
@@ -1562,6 +1597,7 @@ class SwfFile(SwfObject):
 		PLACE_OBJECT_2: PlaceObject2Tag,
 		SOUND_STREAM_HEAD: SoundStreamHeadTag,
 		SOUND_STREAM_BLOCK: SoundStreamBlockTag,
+		DEFINE_VIDEO_STREAM: DefineVideoStreamTag,
 		VIDEO_FRAME: VideoFrameTag,
 	}
 
