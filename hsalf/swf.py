@@ -766,7 +766,7 @@ class Tag(SwfObject):
 			return
 		
 		data = StringIO()
-		self._serialize(data)
+		self._serialize(data, version, *args, **kw_args)
 		data = data.getvalue()
 
 		self.tag_length = len(data)
