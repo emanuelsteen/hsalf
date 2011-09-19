@@ -1196,6 +1196,14 @@ class DefineVideoStreamTag(Tag):
 		self.video_flags_deblocking = br.unsigned_read(3)
 		self.video_flags_smoothing = br.unsigned_read(1)
 		self.codec_id = struct.unpack('B', f.read(1))[0]
+		if self.codec_id not in (2, 3, 4, 5):
+			raise CorruptedSwfException('Not supported codec ID.')
+		if self.codec_id >= 3 and version < 7:
+			raise CorruptedSwfException('Not supported codec ID in '
+				'version lower than 7.')
+		if self.codec_id >= 4 and version < 8:
+			raise CorruptedSwfException('Not supported codec ID in '
+				'version lower than 8.')
 	
 	def _serialize(self, f, version=0, *args, **kw_args):
 		f.write(struct.pack('<HHHH', self.character_id, self.num_frames, \
