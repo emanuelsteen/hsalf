@@ -21,6 +21,7 @@ SND_STEREO = 1
 
 SHOW_FRAME = 1
 SET_BACKGROUND_COLOR = 9
+DO_ACTION = 12
 SOUND_STREAM_HEAD = 18
 SOUND_STREAM_BLOCK = 19
 PLACE_OBJECT_2 = 26
@@ -747,6 +748,32 @@ class SetBackgroundColorTag(Tag):
 	
 	def _deserialize(self, f, version=0, *args, **kw_args):
 		self.background_color.deserialize(f)
+
+
+class DoActionTag(Tag):
+	'''Represents DoAction tag.
+
+	Attributes:
+		actions (sequence of ActionRecord objects): Actions to perform.
+	
+	'''
+
+	def __init__(self):
+		self.tag_code = DO_ACTION
+		self.actions = []
+	
+	def _deserialize(self, f, version=0, *args, **kw_args):
+		self.actions = []
+		while True:
+			action = ActionRecord().deserialize(f, version, *args, **kw_args)
+			if action.action_code == 0:
+				break
+			self.actions.append(action)
+	
+	def _serialize(self, f, version=0, *args, **kw_args):
+		for action in self.actions:
+			action.serialize(f, version, *args, **kw_args)
+		f.write('\x00')
 
 
 class ClipEventFlags(SwfObject):
@@ -1611,6 +1638,7 @@ class SwfFile(SwfObject):
 	decoders = {
 		SHOW_FRAME: ShowFrameTag,
 		SET_BACKGROUND_COLOR: SetBackgroundColorTag,
+		DO_ACTION: DoActionTag,
 		PLACE_OBJECT_2: PlaceObject2Tag,
 		SOUND_STREAM_HEAD: SoundStreamHeadTag,
 		SOUND_STREAM_BLOCK: SoundStreamBlockTag,
