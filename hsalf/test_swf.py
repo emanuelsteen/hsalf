@@ -117,29 +117,56 @@ class RectTest(unittest.TestCase):
 
 class TagTest(unittest.TestCase):
 
-	def test_serialize(self):
+	def test_pure_serialize(self):
 		tag = swf.Tag()
 		tag.tag_code = 1
 		tag.tag_length = 1
 		f = StringIO()
 		tag.serialize(f)
-		self.assertEqual(b'\x41\x00', f.getvalue())
-
-		tag.tag_length = 63
-		f = StringIO()
-		tag.serialize(f)
-		self.assertEqual(b'\x7F\x00\x3f\x00\x00\x00', f.getvalue())
+		self.assertEqual(b'\x40\x00', f.getvalue())
 
 		tag.tag_length = 64
 		f = StringIO()
 		tag.serialize(f)
-		self.assertEqual(b'\x7F\x00\x40\x00\x00\x00', f.getvalue())
+		self.assertEqual(b'\x40\x00', f.getvalue())
+		
+		tag.tag_code = 2
+		f = StringIO()
+		tag.serialize(f)
+		self.assertEqual(b'\x80\x00', f.getvalue())
+
+		tag.tag_code = 3
+		f = StringIO()
+		tag.serialize(f)
+		self.assertEqual(b'\xC0\x00', f.getvalue())
+	
+	class LengthTag(swf.Tag):
+		def _serialize(self, f, version=0, *args, **kw_args):
+			f.write('0' * self.tag_length)
+	
+	def test_serialize(self):
+		tag = TagTest.LengthTag()
+		tag.tag_code = 1
+		tag.tag_length = 1
+		f = StringIO()
+		tag.serialize(f)
+		self.assertEqual(b'\x41\x00', f.getvalue()[ : 2])
+
+		tag.tag_length = 63
+		f = StringIO()
+		tag.serialize(f)
+		self.assertEqual(b'\x7F\x00\x3f\x00\x00\x00', f.getvalue()[ : 6])
+
+		tag.tag_length = 64
+		f = StringIO()
+		tag.serialize(f)
+		self.assertEqual(b'\x7F\x00\x40\x00\x00\x00', f.getvalue()[ : 6])
 
 		tag.tag_code = 9
 		tag.tag_length = 3
 		f = StringIO()
 		tag.serialize(f)
-		self.assertEqual(b'\x43\x02', f.getvalue())
+		self.assertEqual(b'\x43\x02', f.getvalue()[ : 2])
 	
 
 if __name__ == '__main__':
