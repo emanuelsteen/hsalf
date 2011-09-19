@@ -1,3 +1,76 @@
+# -*- coding: utf-8 -*-
+'''
+	hsalf.swf
+	~~~~~~~~~
+
+	Provides an object-model to Flash SWF file. The module is used to
+	read and write SWF tags from or to a file-like object.
+
+	An SWF file is opened with a SwfFile object.
+
+	>>> fi = swf.SwfFile('example.swf')
+
+	The file name can be omitted. In that case, you need to call either
+	``load`` or ``load_header`` later.
+
+	>>> fi = swf.SwfFile()
+	>>> fi.load_header('example.swf')
+
+	Then, you can inspect header values such as file version, frame rate.
+
+	>>> fi.header.file_header.version
+	7
+	>>> fi.header.frame_header.frame_rate
+	3840
+
+	Notice that the frame rate is a 8.8 fixed point value. Therefore,
+	the actual frame rate is 3840 / 256.0 = 15.0. Some tags parse the
+	values to more human-understandable form, some tags do not. It is best
+	to consult their docstrings.
+
+	And you can iterate through all tags in the file with ``iter_body``.
+
+	>>> fi.body = [tag for tag in fi.iter_body()]
+
+	You can save this file back to disk with ``save``.
+
+	>>> fi.save('screen2.swf')
+
+	Like ``iter_body``, ``save`` also takes a tag generator as its second
+	parameter instead of using ``body`` attribute. You can pass in the
+	generator returned by ``iter_body`` to ``save``.
+
+	>>> fi = swf.SwfFile('screen.swf')
+	>>> fo = swf.SwfFile()
+	>>> fo.header = fi.header
+	>>> fo.save('screen2.swf', fi.iter_body())
+
+	It is recommended to call ``close`` at the end.
+
+	>>> fi.close()
+
+	As a more useful example, we can write an MP3 extractor with these few
+	simple lines::
+
+		def extract_mp3(in_name, out_name):
+			fo = open(out_name, 'wb')
+			fi = swf.SwfFile(in_name)
+			for tag in fi.iter_body():
+				if tag.tag_code == swf.SOUND_STREAM_BLOCK:
+					data = StringIO(tag.sound_data)
+					mp3 = swf.Mp3StreamSoundData().deserialize(data)
+					mp3_frames = mp3.sound_data.frames
+					fo.write(mp3_frames)
+			fi.close()
+			fo.close()
+
+	See more examples in ``scripts`` directory.
+
+	:copyright: (c) 2011 Nam T. Nguyen.
+	:license: MIT, see LICENSE for more details.
+
+'''
+
 from cStringIO import StringIO
 
 import zlib
