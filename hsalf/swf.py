@@ -337,7 +337,7 @@ class RgbaColor(SwfObject):
 		f.write(struct.pack('<BBBB', self.r, self.g, self.b, self.a))
 
 
-class RgbaColor(SwfObject):
+class ArgbColor(SwfObject):
 	'''Represents an ARGB color according to SWF spec.'''
 
 	def __init__(self, a=0, r=0, g=0, b=0):
