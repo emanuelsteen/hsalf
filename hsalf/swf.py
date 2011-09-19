@@ -782,15 +782,19 @@ class ClipEventFlags(SwfObject):
 		self.press = br.unsigned_read(1)
 		self.initialize = br.unsigned_read(1)
 		self.data = br.unsigned_read(1)
-		t = br.unsigned_read(5)
-		if t:
-			raise CorruptedSwfException('Reserved must be 0')
-		self.construct = br.unsigned_read(1)
-		self.key_press = br.unsigned_read(1)
-		self.drag_out = br.unsigned_read(1)
-		t = br.unsigned_read(8)
-		if t:
-			raise CorruptedSwfException('Reserved must be 0')
+		if version >= 6:
+			t = br.unsigned_read(5)
+			if t:
+				raise CorruptedSwfException('Reserved must be 0')
+			self.construct = br.unsigned_read(1)
+			if version < 7 and self.construct:
+				raise CorruptedSwfException('ClipEventConstruct must be 0 ' \
+					'in version 6.')
+			self.key_press = br.unsigned_read(1)
+			self.drag_out = br.unsigned_read(1)
+			t = br.unsigned_read(8)
+			if t:
+				raise CorruptedSwfException('Reserved must be 0')
 		return self
 	
 	def serialize(self, f, version=0, *args, **kw_args):
@@ -811,11 +815,15 @@ class ClipEventFlags(SwfObject):
 		bw.write(1, self.press)
 		bw.write(1, self.initialize)
 		bw.write(1, self.data)
-		bw.write(5, 0)
-		bw.write(1, self.construct)
-		bw.write(1, self.key_press)
-		bw.write(1, self.drag_out)
-		bw.write(8, 0)
+		if version >= 6:
+			bw.write(5, 0)
+			if version < 7:
+				bw.write(1, 0)
+			else:
+				bw.write(1, self.construct)
+			bw.write(1, self.key_press)
+			bw.write(1, self.drag_out)
+			bw.write(8, 0)
 		bw.flush()
 
 
@@ -914,11 +922,12 @@ class ClipActions(SwfObject):
 			raise CorruptedSwfException('Reserved must be 0.')
 		self.event_flags = ClipEventFlags().deserialize(f)
 		self.records = []
+		look_ahead_len = 4 if version >= 6 else 2
 		while True:
-			look_ahead = f.read(4)
-			if look_ahead == '\x00\x00\x00\x00':
+			look_ahead = f.read(look_ahead_len)
+			if look_ahead == '\x00' * look_ahead_len:
 				break
-			f.seek(-4)
+			f.seek(-look_ahead_len)
 			action_record = ClipActionRecord().deserialize(f)
 			self.records.append(action_record)
 		return self
@@ -928,7 +937,8 @@ class ClipActions(SwfObject):
 		self.event_flags.serialize(f)
 		for action in self.actions:
 			action.serialize(f)
-		f.write('\x00\x00\x00\x00')
+		look_ahead_len = 4 if version >= 6 else 2
+		f.write('\x00' * look_ahead_len)
 
 
 class PlaceObject2Tag(Tag):
