@@ -9,25 +9,25 @@ class BitReaderTest(unittest.TestCase):
 		#data = '0010 1000 1100 0001'
 		data = StringIO(b'\x28\xC1')
 		br = swf.BitReader(data)
-		self.assertEqual(0, br.unsign_read(1))
-		self.assertEqual(1, br.unsign_read(2))
-		self.assertEqual(2, br.unsign_read(3))
-		self.assertEqual(3, br.unsign_read(4))
-		self.assertEqual(0, br.unsign_read(5))
-		self.assertEqual(1, br.unsign_read(1))
-		self.assertRaises(swf.IoSwfException, br.unsign_read, 1)
+		self.assertEqual(0, br.unsigned_read(1))
+		self.assertEqual(1, br.unsigned_read(2))
+		self.assertEqual(2, br.unsigned_read(3))
+		self.assertEqual(3, br.unsigned_read(4))
+		self.assertEqual(0, br.unsigned_read(5))
+		self.assertEqual(1, br.unsigned_read(1))
+		self.assertRaises(swf.IoSwfException, br.unsigned_read, 1)
 
 	def test_signed_read(self):
 		# data = '00 01 10 11'
 		data = StringIO(b'\x1B')
 		br = swf.BitReader(data)
-		self.assertRaises(ValueError, br.sign_read, 0)
-		self.assertRaises(ValueError, br.sign_read, 1)
-		self.assertEqual(0, br.sign_read(2))
-		self.assertEqual(1, br.sign_read(2))
-		self.assertEqual(-2, br.sign_read(2))
-		self.assertEqual(-1, br.sign_read(2))
-		self.assertRaises(swf.IoSwfException, br.sign_read, 2)
+		self.assertRaises(ValueError, br.signed_read, 0)
+		self.assertRaises(ValueError, br.signed_read, 1)
+		self.assertEqual(0, br.signed_read(2))
+		self.assertEqual(1, br.signed_read(2))
+		self.assertEqual(-2, br.signed_read(2))
+		self.assertEqual(-1, br.signed_read(2))
+		self.assertRaises(swf.IoSwfException, br.signed_read, 2)
 
 
 class BitWriterTest(unittest.TestCase):

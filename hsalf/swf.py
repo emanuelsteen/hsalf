@@ -99,7 +99,7 @@ class BitReader(object):
 		self.backlog = self.backlog[length : ]
 		return r
 
-	def sign_read(self, length):
+	def signed_read(self, length):
 		'''Reads length bits from wrapped file,
 		treating it as signed value.
 
@@ -118,7 +118,7 @@ class BitReader(object):
 			raise ValueError('signed value must have length greater than 1')
 		return self.read(length, True)
 
-	def unsign_read(self, length):
+	def unsigned_read(self, length):
 		'''Reads length bits from wrapped file,
 		treating it as unsigned value.
 
@@ -340,11 +340,11 @@ class Rect(SwfObject):
 	
 	def deserialize(self, f):
 		br = BitReader(f)
-		nbits = br.unsign_read(5)
-		self.x_min = br.sign_read(nbits)
-		self.x_max = br.sign_read(nbits)
-		self.y_min = br.sign_read(nbits)
-		self.y_max = br.sign_read(nbits)
+		nbits = br.unsigned_read(5)
+		self.x_min = br.signed_read(nbits)
+		self.x_max = br.signed_read(nbits)
+		self.y_min = br.signed_read(nbits)
+		self.y_max = br.signed_read(nbits)
 		return self
 	
 	def serialize(self, f):
@@ -373,22 +373,22 @@ class Matrix(SwfObject):
 
 	def deserialize(self, f):
 		br = BitReader(f)
-		has_scale = br.unsign_read(1)
+		has_scale = br.unsigned_read(1)
 		if has_scale:
-			scale_bits = br.unsign_read(5)
-			scale_x = br.sign_read(scale_bits)
-			scale_y = br.sign_read(scale_bits)
+			scale_bits = br.unsigned_read(5)
+			scale_x = br.signed_read(scale_bits)
+			scale_y = br.signed_read(scale_bits)
 			self.scale = [scale_x / 65536.0, scale_y / 65536.0]
-		has_rotate = br.unsign_read(1)
+		has_rotate = br.unsigned_read(1)
 		if has_rotate:
-			rotate_bits = br.unsign_read(5)
-			rotate1 = br.sign_read(rotate_bits)
-			rotate2 = br.sign_read(rotate_bits)
+			rotate_bits = br.unsigned_read(5)
+			rotate1 = br.signed_read(rotate_bits)
+			rotate2 = br.signed_read(rotate_bits)
 			self.rotate = [rotate1 / 65536.0, rotate2 / 65536.0]
-		translate_bits = br.unsign_read(5)
+		translate_bits = br.unsigned_read(5)
 		if translate_bits > 0:
-			self.translate[0] = br.sign_read(translate_bits)
-			self.translate[1] = br.sign_read(translate_bits)
+			self.translate[0] = br.signed_read(translate_bits)
+			self.translate[1] = br.signed_read(translate_bits)
 		return self
 
 	def serialize(self, f):
@@ -434,15 +434,15 @@ class ColorTransform(SwfObject):
 	
 	def deserialize(self, f):
 		br = BitReader(f)
-		has_add = br.unsign_read(1)
-		has_mult = br.unsign_read(1)
-		nbits = br.unsign_read(4)
+		has_add = br.unsigned_read(1)
+		has_mult = br.unsigned_read(1)
+		nbits = br.unsigned_read(4)
 		if has_mult:
-			self.mult_term = [br.sign_read(nbits),
-				br.sign_read(nbits), br.sign_read(nbits)]
+			self.mult_term = [br.signed_read(nbits),
+				br.signed_read(nbits), br.signed_read(nbits)]
 		if has_add:
-			self.add_term = [br.sign_read(nbits),
-				br.sign_read(nbits), br.sign_read(nbits)]
+			self.add_term = [br.signed_read(nbits),
+				br.signed_read(nbits), br.signed_read(nbits)]
 		return self
 	
 	def serialize(self, f):
@@ -479,15 +479,15 @@ class ColorTransformWithAlpha(SwfObject):
 	
 	def deserialize(self, f):
 		br = BitReader(f)
-		has_add = br.unsign_read(1)
-		has_mult = br.unsign_read(1)
-		nbits = br.unsign_read(4)
+		has_add = br.unsigned_read(1)
+		has_mult = br.unsigned_read(1)
+		nbits = br.unsigned_read(4)
 		if has_mult:
-			self.mult_term = [br.sign_read(nbits), br.sign_read(nbits),
-				br.sign_read(nbits), br.sign_read(nbits)]
+			self.mult_term = [br.signed_read(nbits), br.signed_read(nbits),
+				br.signed_read(nbits), br.signed_read(nbits)]
 		if has_add:
-			self.add_term = [br.sign_read(nbits), br.sign_read(nbits),
-			br.sign_read(nbits), br.sign_read(nbits)]
+			self.add_term = [br.signed_read(nbits), br.signed_read(nbits),
+			br.signed_read(nbits), br.signed_read(nbits)]
 		return self
 	
 	def serialize(self, f):
@@ -740,29 +740,29 @@ class ClipEventFlags(SwfObject):
 	
 	def deserialize(self, f):
 		br = BitReader(f)
-		self.key_up = br.unsign_read(1)
-		self.key_down = br.unsign_read(1)
-		self.mouse_up = br.unsign_read(1)
-		self.mouse_down = br.unsign_read(1)
-		self.mouse_move = br.unsign_read(1)
-		self.unload = br.unsign_read(1)
-		self.enter_frame = br.unsign_read(1)
-		self.load = br.unsign_read(1)
-		self.drag_over = br.unsign_read(1)
-		self.roll_out = br.unsign_read(1)
-		self.roll_over = br.unsign_read(1)
-		self.release_outside = br.unsign_read(1)
-		self.release = br.unsign_read(1)
-		self.press = br.unsign_read(1)
-		self.initialize = br.unsign_read(1)
-		self.data = br.unsign_read(1)
-		t = br.unsign_read(5)
+		self.key_up = br.unsigned_read(1)
+		self.key_down = br.unsigned_read(1)
+		self.mouse_up = br.unsigned_read(1)
+		self.mouse_down = br.unsigned_read(1)
+		self.mouse_move = br.unsigned_read(1)
+		self.unload = br.unsigned_read(1)
+		self.enter_frame = br.unsigned_read(1)
+		self.load = br.unsigned_read(1)
+		self.drag_over = br.unsigned_read(1)
+		self.roll_out = br.unsigned_read(1)
+		self.roll_over = br.unsigned_read(1)
+		self.release_outside = br.unsigned_read(1)
+		self.release = br.unsigned_read(1)
+		self.press = br.unsigned_read(1)
+		self.initialize = br.unsigned_read(1)
+		self.data = br.unsigned_read(1)
+		t = br.unsigned_read(5)
 		if t:
 			raise CorruptedSwfException('Reserved must be 0')
-		self.construct = br.unsign_read(1)
-		self.key_press = br.unsign_read(1)
-		self.drag_out = br.unsign_read(1)
-		t = br.unsign_read(8)
+		self.construct = br.unsigned_read(1)
+		self.key_press = br.unsigned_read(1)
+		self.drag_out = br.unsigned_read(1)
+		t = br.unsigned_read(8)
 		if t:
 			raise CorruptedSwfException('Reserved must be 0')
 		return self
@@ -926,14 +926,14 @@ class PlaceObject2Tag(Tag):
 	
 	def _deserialize(self, f):
 		br = BitReader(f)
-		has_clip_actions = br.unsign_read(1)
-		has_clip_depth = br.unsign_read(1)
-		has_name = br.unsign_read(1)
-		has_ratio = br.unsign_read(1)
-		has_color_trans = br.unsign_read(1)
-		has_matrix = br.unsign_read(1)
-		has_char = br.unsign_read(1)
-		self.move = br.unsign_read(1)
+		has_clip_actions = br.unsigned_read(1)
+		has_clip_depth = br.unsigned_read(1)
+		has_name = br.unsigned_read(1)
+		has_ratio = br.unsigned_read(1)
+		has_color_trans = br.unsigned_read(1)
+		has_matrix = br.unsigned_read(1)
+		has_char = br.unsigned_read(1)
+		self.move = br.unsigned_read(1)
 
 		self.depth = struct.unpack('<H', f.read(2))[0]
 		if has_char:
@@ -1022,19 +1022,19 @@ class SoundStreamHeadTag(Tag):
 		br = BitReader(f)
 		# ignore 4 bits
 		br.read(4)
-		self.playback_sound_rate = br.unsign_read(2)
-		self.playback_sound_size = br.unsign_read(1)
+		self.playback_sound_rate = br.unsigned_read(2)
+		self.playback_sound_size = br.unsigned_read(1)
 		if self.playback_sound_size != 1:
 			raise CorruptedSwfException('Playback sound size is always 1')
-		self.playback_sound_type = br.unsign_read(1)
-		self.stream_sound_compression = br.unsign_read(4)
+		self.playback_sound_type = br.unsigned_read(1)
+		self.stream_sound_compression = br.unsigned_read(4)
 		if self.stream_sound_compression not in (SND_ADPCM, SND_MP3):
 			raise CorruptedSwfException('Stream sound compression')
-		self.stream_sound_rate = br.unsign_read(2)
-		self.stream_sound_size = br.unsign_read(1)
+		self.stream_sound_rate = br.unsigned_read(2)
+		self.stream_sound_size = br.unsigned_read(1)
 		if self.stream_sound_size != 1:
 			raise CorruptedSwfException('Stream sound size is always 1')
-		self.stream_sound_type = br.unsign_read(1)
+		self.stream_sound_type = br.unsigned_read(1)
 		self.stream_sound_sample_count = struct.unpack('<H', f.read(2))[0]
 		if self.stream_sound_compression == SND_MP3 and self.tag_length > 4:
 			self.latency_seek = struct.unpack('<h', f.read(2))[0]
@@ -1148,7 +1148,7 @@ class ScreenVideoBlock(SwfObject):
 	
 	def deserialize(self, f):
 		br = BitReader(f)
-		size = br.unsign_read(16)
+		size = br.unsigned_read(16)
 		if size == 0:
 			return None
 		blk_data = f.read(size)
@@ -1249,14 +1249,14 @@ class ScreenVideoPacket(SwfObject):
 	
 	def deserialize(self, f):
 		br = BitReader(f)
-		self.frame_type = br.unsign_read(4)
-		codec_id = br.unsign_read(4)
+		self.frame_type = br.unsigned_read(4)
+		codec_id = br.unsigned_read(4)
 		if codec_id != SCREEN_VIDEO_CODEC:
 			raise SwfException('ScreenVideoPacket is only for Screen Video codec')
-		self.block_width = (br.unsign_read(4) + 1) * 16
-		self.image_width = br.unsign_read(12)
-		self.block_height = (br.unsign_read(4) + 1) * 16
-		self.image_height = br.unsign_read(12)
+		self.block_width = (br.unsigned_read(4) + 1) * 16
+		self.image_width = br.unsigned_read(12)
+		self.block_height = (br.unsigned_read(4) + 1) * 16
+		self.image_height = br.unsigned_read(12)
 		self.prepare_blocks()
 		self.fill_blocks(f)
 		return self
