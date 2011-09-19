@@ -781,6 +781,11 @@ class ClipEventFlags(SwfObject):
 		self.release = br.unsigned_read(1)
 		self.press = br.unsigned_read(1)
 		self.initialize = br.unsigned_read(1)
+		if version < 6 and (self.drag_over or self.roll_out or \
+			self.roll_over or self.release_outside or self.release or \
+			self.press or self.initialize):
+			raise CorruptedSwfException('Values not supported in version '
+				'below 6.')
 		self.data = br.unsigned_read(1)
 		if version >= 6:
 			t = br.unsigned_read(5)
@@ -807,13 +812,16 @@ class ClipEventFlags(SwfObject):
 		bw.write(1, self.unload)
 		bw.write(1, self.enter_frame)
 		bw.write(1, self.load)
-		bw.write(1, self.drag_over)
-		bw.write(1, self.roll_out)
-		bw.write(1, self.roll_over)
-		bw.write(1, self.release_outside)
-		bw.write(1, self.release)
-		bw.write(1, self.press)
-		bw.write(1, self.initialize)
+		if version < 6:
+			bw.write(7, 0)
+		else:
+			bw.write(1, self.drag_over)
+			bw.write(1, self.roll_out)
+			bw.write(1, self.roll_over)
+			bw.write(1, self.release_outside)
+			bw.write(1, self.release)
+			bw.write(1, self.press)
+			bw.write(1, self.initialize)
 		bw.write(1, self.data)
 		if version >= 6:
 			bw.write(5, 0)
