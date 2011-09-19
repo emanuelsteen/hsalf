@@ -229,7 +229,7 @@ class SwfObject(object):
 	def __init__(self):
 		pass
 	
-	def serialize(self, f):
+	def serialize(self, f, version=0, *args, **kw_args):
 		'''Writes this object to file-like object f in specified format.
 
 		Args:
@@ -239,7 +239,7 @@ class SwfObject(object):
 
 		raise NotImplemented()
 	
-	def deserialize(self, f):
+	def deserialize(self, f, version=0, *args, **kw_args):
 		'''Populates self with data from a file-like object f.
 
 		Args:
@@ -260,12 +260,12 @@ class Fixed32(SwfObject):
 	def __init__(self, value=0):
 		self.value = value
 
-	def deserialize(self, f):
+	def deserialize(self, f, version=0, *args, **kw_args):
 		value = struct.unpack('<i', f.read(4))[0]
 		self.value = value / 65536.0
 		return self
 	
-	def serialize(self, f):
+	def serialize(self, f, version=0, *args, **kw_args):
 		value = int(self.value * 65536.0)
 		f.write(struct.pack('<i', value))
 
@@ -279,7 +279,7 @@ class String(SwfObject):
 			value = value[ : pos]
 		self.value = value
 	
-	def deserialize(self, f, encoding='utf-8'):
+	def deserialize(self, f, version=0, *args, **kw_args):
 		r = []
 		while True:
 			c = ensure_read(f, 1)
@@ -287,10 +287,18 @@ class String(SwfObject):
 				break
 			r.append(c)
 		# version 6.0 or later defaults to utf-8
+		encoding = 'utf-8'
+		if version < 6:
+			# version 5 and below accepts ANSI (which is assumed cp1252),
+			# or shift-jis, the caller should know
+			encoding = kw_args.get('string_encoding', 'cp1252')
 		self.value = b''.join(r).decode(encoding)
 		return self
 	
-	def serialize(self, f, encoding='utf-8'):
+	def serialize(self, f, version=0, *args, **kw_args):
+		encoding = 'utf-8'
+		if version < 6:
+			encoding = kw_args.get('string_encoding', 'cp1252')
 		value = self.value.encode(encoding)
 		f.write(value + '\x00')
 
@@ -303,11 +311,11 @@ class RgbColor(SwfObject):
 		self.g = g
 		self.b = b
 	
-	def deserialize(self, f):
+	def deserialize(self, f, version=0, *args, **kw_args):
 		self.r, self.g, self.b = struct.unpack('<BBB', f.read(3))
 		return self
 	
-	def serialize(self, f):
+	def serialize(self, f, version=0, *args, **kw_args):
 		f.write(struct.pack('<BBB', self.r, self.g, self.b))
 
 
@@ -320,12 +328,12 @@ class RgbaColor(SwfObject):
 		self.b = b
 		self.a = a
 	
-	def deserialize(self, f):
+	def deserialize(self, f, version=0, *args, **kw_args):
 		self.r, self.g, self.b, self.a = \
 			struct.unpack('<BBBB', f.read(4))
 		return self
 	
-	def serialize(self, f):
+	def serialize(self, f, version=0, *args, **kw_args):
 		f.write(struct.pack('<BBBB', self.r, self.g, self.b, self.a))
 
 
@@ -338,7 +346,7 @@ class Rect(SwfObject):
 		self.y_min = 0
 		self.y_max = 0
 	
-	def deserialize(self, f):
+	def deserialize(self, f, version=0, *args, **kw_args):
 		br = BitReader(f)
 		nbits = br.unsigned_read(5)
 		self.x_min = br.signed_read(nbits)
@@ -347,7 +355,7 @@ class Rect(SwfObject):
 		self.y_max = br.signed_read(nbits)
 		return self
 	
-	def serialize(self, f):
+	def serialize(self, f, version=0, *args, **kw_args):
 		bw = BitWriter(f)
 		nbits = BitWriter.required_bits(self.x_min, self.x_max,
 			self.y_min, self.y_max)
@@ -371,7 +379,7 @@ class Matrix(SwfObject):
 		self.rotate = None
 		self.translate = [0, 0]
 
-	def deserialize(self, f):
+	def deserialize(self, f, version=0, *args, **kw_args):
 		br = BitReader(f)
 		has_scale = br.unsigned_read(1)
 		if has_scale:
@@ -391,7 +399,7 @@ class Matrix(SwfObject):
 			self.translate[1] = br.signed_read(translate_bits)
 		return self
 
-	def serialize(self, f):
+	def serialize(self, f, version=0, *args, **kw_args):
 		bw = BitWriter(f)
 		if self.scale is not None:
 			bw.write(1, 1)
@@ -432,7 +440,7 @@ class ColorTransform(SwfObject):
 		self.mult_term = None
 		self.add_term = None
 	
-	def deserialize(self, f):
+	def deserialize(self, f, version=0, *args, **kw_args):
 		br = BitReader(f)
 		has_add = br.unsigned_read(1)
 		has_mult = br.unsigned_read(1)
@@ -445,7 +453,7 @@ class ColorTransform(SwfObject):
 				br.signed_read(nbits), br.signed_read(nbits)]
 		return self
 	
-	def serialize(self, f):
+	def serialize(self, f, version=0, *args, **kw_args):
 		bw = BitWriter(f)
 		bits = [self.add_term is not None, self.mult_term is not None]
 		for bit in bits:
@@ -477,7 +485,7 @@ class ColorTransformWithAlpha(SwfObject):
 		self.mult_term = None
 		self.add_term = None
 	
-	def deserialize(self, f):
+	def deserialize(self, f, version=0, *args, **kw_args):
 		br = BitReader(f)
 		has_add = br.unsigned_read(1)
 		has_mult = br.unsigned_read(1)
@@ -490,7 +498,7 @@ class ColorTransformWithAlpha(SwfObject):
 			br.signed_read(nbits), br.signed_read(nbits)]
 		return self
 	
-	def serialize(self, f):
+	def serialize(self, f, version=0, *args, **kw_args):
 		bw = BitWriter(f)
 		bits = [self.add_term is not None, self.mult_term is not None]
 		for bit in bits:
@@ -526,7 +534,7 @@ class FileHeader(SwfObject):
 		self.version = 7
 		self.file_length = 0
 	
-	def deserialize(self, f):
+	def deserialize(self, f, version=0, *args, **kw_args):
 		signature, version, length = \
 			struct.unpack('<3sBI', f.read(8))
 		if signature not in ('FWS', 'CWS'):
@@ -547,7 +555,7 @@ class FileHeader(SwfObject):
 			self.signature = 'FWS'
 	compressed = property(_get_compressed, _set_compressed)
 
-	def serialize(self, f):
+	def serialize(self, f, version=0, *args, **kw_args):
 		f.write(struct.pack('<3sBI', self.signature, self.version,
 			self.file_length))
 	
@@ -567,7 +575,7 @@ class FrameHeader(SwfObject):
 		self.frame_rate = 0
 		self.frame_count = 0
 
-	def deserialize(self, f):
+	def deserialize(self, f, version=0, *args, **kw_args):
 		size = Rect().deserialize(f)
 		rate, count = struct.unpack('<HH', f.read(4))
 		self.frame_size = size
@@ -575,7 +583,7 @@ class FrameHeader(SwfObject):
 		self.frame_count = count
 		return self
 
-	def serialize(self, f):
+	def serialize(self, f, version=0, *args, **kw_args):
 		self.frame_size.serialize(f)
 		f.write(struct.pack('<HH', self.frame_rate, self.frame_count))
 
@@ -593,10 +601,10 @@ class Header(SwfObject):
 		self.file_header = file_header
 		self.frame_header = frame_header
 	
-	def deserialize(self, f):
+	def deserialize(self, f, version=0, *args, **kw_args):
 		raise NotImplemented()
 	
-	def serialize(self, f):
+	def serialize(self, f, version=0, *args, **kw_args):
 		self.file_header.serialize(f)
 		self.frame_header.serialize(f)
 
@@ -622,7 +630,7 @@ class Tag(SwfObject):
 		self.tag_length = tag.tag_length
 		return self
 	
-	def deserialize(self, f, tag=True):
+	def deserialize(self, f, version=0, tag=True, *args, **kw_args):
 		'''Loads this tag from file-like object f.
 
 		Args:
@@ -642,14 +650,14 @@ class Tag(SwfObject):
 			self.tag_code = code_and_length >> 6
 			if self.tag_length >= 63:
 				self.tag_length = struct.unpack('<I', f.read(4))[0]
-		self._deserialize(f)
+		self._deserialize(f, version, *args, **kw_args)
 		return self
 
-	def _deserialize(self, f):
+	def _deserialize(self, f, version=0, *args, **kw_args):
 		'''To be overridden by subclasses to deserialize their data.'''
 		pass
 
-	def serialize(self, f, tag=True):
+	def serialize(self, f, version=0, tag=True, *args, **kw_args):
 		'''Writes this tag into a file-like object.
 
 		Args:
@@ -660,7 +668,7 @@ class Tag(SwfObject):
 		'''
 
 		if not tag:
-			self._serialize(f)
+			self._serialize(f, version, *args, **kw_args)
 			return
 		
 		data = StringIO()
@@ -677,7 +685,7 @@ class Tag(SwfObject):
 			f.write(struct.pack('<HI', code_and_length, self.tag_length))
 		f.write(data)
 	
-	def _serialize(self, f):
+	def _serialize(self, f, version=0, *args, **kw_args):
 		'''To be overridden by subclasses to serialize their data.'''
 		pass
 
@@ -688,10 +696,10 @@ class UnknownTag(Tag):
 	def __init__(self):
 		self.data = ''
 	
-	def _deserialize(self, f):
+	def _deserialize(self, f, version=0, *args, **kw_args):
 		self.data = ensure_read(f, self.tag_length)
 
-	def _serialize(self, f):
+	def _serialize(self, f, version=0, *args, **kw_args):
 		f.write(self.data)
 
 
@@ -707,10 +715,10 @@ class SetBackgroundColorTag(Tag):
 		self.tag_code = SET_BACKGROUND_COLOR
 		self.background_color = RgbColor()
 	
-	def _serialize(self, f):
+	def _serialize(self, f, version=0, *args, **kw_args):
 		self.background_color.serialize(f)
 	
-	def _deserialize(self, f):
+	def _deserialize(self, f, version=0, *args, **kw_args):
 		self.background_color.deserialize(f)
 
 
@@ -738,7 +746,7 @@ class ClipEventFlags(SwfObject):
 		self.key_press = False
 		self.drag_out = False
 	
-	def deserialize(self, f):
+	def deserialize(self, f, version=0, *args, **kw_args):
 		br = BitReader(f)
 		self.key_up = br.unsigned_read(1)
 		self.key_down = br.unsigned_read(1)
@@ -767,7 +775,7 @@ class ClipEventFlags(SwfObject):
 			raise CorruptedSwfException('Reserved must be 0')
 		return self
 	
-	def serialize(self, f):
+	def serialize(self, f, version=0, *args, **kw_args):
 		bw = BitWriter(f)
 		bw.write(1, self.key_up)
 		bw.write(1, self.key_down)
@@ -811,14 +819,14 @@ class ActionRecord(SwfObject):
 		self.action_length = 0
 		self.action_data = None
 
-	def deserialize(self, f):
+	def deserialize(self, f, version=0, *args, **kw_args):
 		self.action_code = struct.unpack('B', f.read(1))[0]
 		if self.action_code >= 0x80:
 			self.action_length = struct.unpack('<H', f.read(1))[0]
 			self.action_data = f.read(self.action_length)
 		return self
 	
-	def serialize(self, f):
+	def serialize(self, f, version=0, *args, **kw_args):
 		if self.action_code >= 0x80:
 			f.write(struct.pack('<BH', self.action_code, self.action_length))
 			f.write(self.action_data)
@@ -835,7 +843,7 @@ class ClipActionRecord(SwfObject):
 		self.key_code = 0
 		self.actions = []
 	
-	def deserialize(self, f):
+	def deserialize(self, f, version=0, *args, **kw_args):
 		self.event_flags = ClipEventFlags().deserialize(f)
 		self.record_size = struct.unpack('<I', f.read(4))[0]
 		if self.event_flags.key_press:
@@ -852,7 +860,7 @@ class ClipActionRecord(SwfObject):
 			self.actions.append(action)
 		return self
 	
-	def serialize(self, f):
+	def serialize(self, f, version=0, *args, **kw_args):
 		self.event_flags.serialize(f)
 		data = StringIO()
 		for action in self.actions:
@@ -882,7 +890,7 @@ class ClipActions(SwfObject):
 		self.event_flags = ClipEventFlags()
 		self.records = []
 
-	def deserialize(self, f):
+	def deserialize(self, f, version=0, *args, **kw_args):
 		t = f.read(2)
 		if t != b'\x00\x00':
 			raise CorruptedSwfException('Reserved must be 0.')
@@ -897,7 +905,7 @@ class ClipActions(SwfObject):
 			self.records.append(action_record)
 		return self
 	
-	def serialize(self, f):
+	def serialize(self, f, version=0, *args, **kw_args):
 		f.write('\x00\x00')
 		self.event_flags.serialize(f)
 		for action in self.actions:
@@ -924,7 +932,7 @@ class PlaceObject2Tag(Tag):
 		self.clip_depth = None
 		self.clip_actions = None
 	
-	def _deserialize(self, f):
+	def _deserialize(self, f, version=0, *args, **kw_args):
 		br = BitReader(f)
 		has_clip_actions = br.unsigned_read(1)
 		has_clip_depth = br.unsigned_read(1)
@@ -951,7 +959,7 @@ class PlaceObject2Tag(Tag):
 		if has_clip_actions:
 			self.clip_actions = ClipActions().deserialize(f)
 
-	def _serialize(self, f):
+	def _serialize(self, f, version=0, *args, **kw_args):
 		bits = [0] * 8
 		for idx, name in enumerate(('clip_actions', 'clip_depth', 'name',
 			'ratio', 'color_transform', 'matrix', 'character_id')):
@@ -1018,7 +1026,7 @@ class SoundStreamHeadTag(Tag):
 		self.stream_sound_sample_count = 0
 		self.latency_seek = 0
 	
-	def _deserialize(self, f):
+	def _deserialize(self, f, version=0, *args, **kw_args):
 		br = BitReader(f)
 		# ignore 4 bits
 		br.read(4)
@@ -1039,7 +1047,7 @@ class SoundStreamHeadTag(Tag):
 		if self.stream_sound_compression == SND_MP3 and self.tag_length > 4:
 			self.latency_seek = struct.unpack('<h', f.read(2))[0]
 	
-	def _serialize(self, f):
+	def _serialize(self, f, version=0, *args, **kw_args):
 		bw = BitWriter(f)
 		bw.write(4, 0)
 		bw.write(2, self.playback_sound_rate)
@@ -1070,12 +1078,12 @@ class Mp3SoundData(SwfObject):
 		self.seek_samples = 0
 		self.frames = b''
 	
-	def deserialize(self, f):
+	def deserialize(self, f, version=0, *args, **kw_args):
 		self.seek_samples = struct.unpack('<h', f.read(2))[0]
 		self.frames = f.read()
 		return self
 	
-	def serialize(self, f):
+	def serialize(self, f, version=0, *args, **kw_args):
 		f.write(struct.pack('<h', self.seek_samples))
 		f.write(self.frames)
 	
@@ -1093,12 +1101,12 @@ class Mp3StreamSoundData(SwfObject):
 		self.sample_count = 0
 		self.sound_data = Mp3SoundData()
 	
-	def deserialize(self, f):
+	def deserialize(self, f, version=0, *args, **kw_args):
 		self.sample_count = struct.unpack('<H', f.read(2))[0]
 		self.sound_data = Mp3SoundData().deserialize(f)
 		return self
 	
-	def serialize(self, f):
+	def serialize(self, f, version=0, *args, **kw_args):
 		f.write(struct.pack('<H', self.sample_count))
 		self.sound_data.serialize(f)
 
@@ -1117,10 +1125,10 @@ class SoundStreamBlockTag(Tag):
 		self.tag_code = SOUND_STREAM_BLOCK
 		self.sound_data = b''
 	
-	def _serialize(self, f):
+	def _serialize(self, f, version=0, *args, **kw_args):
 		f.write(self.sound_data)
 	
-	def _deserialize(self, f):
+	def _deserialize(self, f, version=0, *args, **kw_args):
 		self.sound_data = f.read(self.tag_length)
 
 
@@ -1146,7 +1154,7 @@ class ScreenVideoBlock(SwfObject):
 		return cmp((self.width, self.height, self.pixels),
 			(other.width, other.height, other.pixels))
 	
-	def deserialize(self, f):
+	def deserialize(self, f, version=0, *args, **kw_args):
 		br = BitReader(f)
 		size = br.unsigned_read(16)
 		if size == 0:
@@ -1162,7 +1170,7 @@ class ScreenVideoBlock(SwfObject):
 			pixel_nr += 1
 		return self
 
-	def serialize(self, f):
+	def serialize(self, f, version=0, *args, **kw_args):
 		bw = BitWriter(f)
 		if not self.pixels:
 			bw.write(16, 0)
@@ -1228,11 +1236,11 @@ class ScreenVideoPacket(SwfObject):
 		def __hash__(self):
 			return hash((self.b, self.g, self.r))
 		
-		def deserialize(self, f):
+		def deserialize(self, f, version=0, *args, **kw_args):
 			self.b, self.g, self.r = struct.unpack('BBB', f.read(3))
 			return self
 		
-		def serialize(self, f):
+		def serialize(self, f, version=0, *args, **kw_args):
 			f.write(struct.pack('BBB', self.b, self.g, self.r))
 
 	def __init__(self):
@@ -1247,7 +1255,7 @@ class ScreenVideoPacket(SwfObject):
 		self.block_count = 0
 		self.image_blocks = []
 	
-	def deserialize(self, f):
+	def deserialize(self, f, version=0, *args, **kw_args):
 		br = BitReader(f)
 		self.frame_type = br.unsigned_read(4)
 		codec_id = br.unsigned_read(4)
@@ -1261,7 +1269,7 @@ class ScreenVideoPacket(SwfObject):
 		self.fill_blocks(f)
 		return self
 	
-	def serialize(self, f):
+	def serialize(self, f, version=0, *args, **kw_args):
 		bw = BitWriter(f)
 		bw.write(4, self.frame_type)
 		bw.write(4, self.codec_id)
@@ -1465,13 +1473,13 @@ class VideoFrameTag(Tag):
 		self.frame_num = 0
 		self.video_data = b''
 	
-	def _deserialize(self, f):
+	def _deserialize(self, f, version=0, *args, **kw_args):
 		if self.tag_length < 4:
 			raise CorruptedSwfException()
 		self.stream_id, self.frame_num = struct.unpack('<HH', f.read(4))
 		self.video_data = ensure_read(f, self.tag_length - 4)
 
-	def _serialize(self, f):
+	def _serialize(self, f, version=0, *args, **kw_args):
 		# note that user must fix self.tag_length themselves before
 		# calling serialize().
 		f.write(struct.pack('<HH', self.stream_id, self.frame_num))
@@ -1587,16 +1595,17 @@ class SwfFile(SwfObject):
 	def iter_body(self):
 		'''Returns an iterator through all tags, including the END tag.'''
 
+		version = self.header.file_header.version
 		last_tag = None
 		while True:
 			try:
-				tag = Tag().deserialize(self.file)
+				tag = Tag().deserialize(self.file, version)
 			except struct.error:
 				if last_tag and last_tag.tag_code == 0:
 					break
 				raise CorruptedSwfException()
 			clz = SwfFile.decoders.get(tag.tag_code, UnknownTag)
-			tag = clz().clone_tag(tag).deserialize(self.file, False)
+			tag = clz().clone_tag(tag).deserialize(self.file, version, False)
 			yield tag
 			last_tag = tag
 	
@@ -1621,10 +1630,11 @@ class SwfFile(SwfObject):
 				raise SwfException('File body is required')
 			iter_body = self.body
 		
+		version = self.header.file_header.version
 		fio = StringIO()
-		self.header.frame_header.serialize(fio)
+		self.header.frame_header.serialize(fio, version)
 		for tag in iter_body:
-			tag.serialize(fio)
+			tag.serialize(fio, version)
 		data = fio.getvalue()
 		self.header.file_header.file_length = 8 + len(data)
 		if self.header.file_header.compressed:
@@ -1632,7 +1642,7 @@ class SwfFile(SwfObject):
 		
 		f = open(file_name, 'wb')
 		try:
-			self.header.file_header.serialize(f)
+			self.header.file_header.serialize(f, version)
 			f.write(data)
 		finally:
 			f.close()
