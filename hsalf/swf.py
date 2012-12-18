@@ -965,7 +965,7 @@ class ActionRecord(SwfObject):
 	def deserialize(self, f, version=0, *args, **kw_args):
 		self.action_code = struct.unpack('B', f.read(1))[0]
 		if self.action_code >= 0x80:
-			self.action_length = struct.unpack('<H', f.read(1))[0]
+			self.action_length = struct.unpack('<H', f.read(2))[0]
 			self.action_data = f.read(self.action_length)
 		return self
 	
